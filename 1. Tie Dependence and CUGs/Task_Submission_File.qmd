@@ -1,0 +1,109 @@
+---
+title: "Assignment 1"
+format: html
+---
+
+# Task 1: Tie Dependence and CUGs
+
+## Setup
+
+```{r}
+# Given by task statement
+set.seed(161)
+n_perm <- 5000
+
+m <- 134
+M <- 42
+A <- 50
+N <- 139
+
+# Data path from this folder to the project Data folder
+data_path <- "Lintner_Data/10_W1.csv"
+```
+
+### Load Network and Remove Affected Data
+
+```{r}
+# 1) Load network with blanks as NA
+raw_net <- read.csv2(
+  "../Data/10_W1.csv",   # adjust path if needed
+  header = TRUE,
+  row.names = 1,
+  check.names = FALSE,
+  na.strings = c("", "NA")
+)
+
+# Keep original node labels and normalize possible "X" prefixes in numeric IDs
+row_ids <- rownames(raw_net)
+col_ids <- colnames(raw_net)
+
+# Convert to numeric matrix and align to common IDs on both axes
+A <- as.matrix(raw_net)
+storage.mode(A) <- "numeric"
+rownames(A) <- row_ids
+colnames(A) <- col_ids
+
+common_ids <- intersect(row_ids, col_ids)
+A <- A[common_ids, common_ids, drop = FALSE]
+
+# 2) Identify nodes affected by missing tie data
+nodes_drop <- rownames(A)[rowSums(is.na(A)) > 0]
+
+# 3) Remove affected nodes from network (row + column)
+A_clean <- A[!(rownames(A) %in% nodes_drop), !(colnames(A) %in% nodes_drop), drop = FALSE]
+
+# 4) Final checks
+stopifnot(nrow(A_clean) == ncol(A_clean))
+stopifnot(all(A_clean %in% c(0, 1)))
+```
+
+### Summary Table
+
+```{r}
+summary_table <- data.frame(
+  metric = c("Original nodes", "Dropped nodes", "Cleaned nodes", "Remaining NA", "Ties in cleaned network"),
+  value = c(
+    nrow(A),
+    length(nodes_drop),
+    nrow(A_clean),
+    sum(is.na(A_clean)),
+    sum(A_clean)
+  )
+)
+
+nodes_drop_table <- data.frame(
+  dropped_node = if (length(nodes_drop) == 0) NA_character_ else nodes_drop,
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(summary_table, caption = "Cleaning Summary")
+knitr::kable(nodes_drop_table, caption = "Dropped Node IDs")
+```
+
+### Cleaned 10_W1 CSV 
+
+```{r}
+# Save cleaned adjacency matrix as a CSV next to this qmd
+clean_csv_path <- "10_W1_clean.csv"
+write.csv2(
+  data.frame(node = rownames(A_clean), A_clean, check.names = FALSE),
+  file = clean_csv_path,
+  row.names = FALSE,
+  quote = FALSE
+)
+
+# Read the cleaned CSV and render it as a table in the report
+clean_csv_tbl <- read.csv2(clean_csv_path, check.names = FALSE)
+knitr::kable(clean_csv_tbl, caption = "Cleaned 10_W1 (CSV Render)")
+```
+
+## Task 1.1
+
+## Reproducibility Footer
+
+```{r}
+cat("Seed used:", 161, "\n")
+cat("Permutations used:", n_perm, "\n")
+sessionInfo()
+```
+
