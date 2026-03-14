@@ -98,6 +98,16 @@ knitr::kable(clean_csv_tbl, caption = "Cleaned 10_W1 (CSV Render)")
 ```
 
 ## Task 1.1
+*Compute probability $p$ of observing a tie if you choose one possible dyad at random*
+
+```{r}
+nodes = nrow(A_clean)
+ties  = sum(A_clean)
+
+# P[tie] = |ties| / |total number of possible ties|
+p = ties / ((nodes) * (nodes - 1) / 2)
+cat("Probability[Observing a Tie] = ", p, "\n")
+```
 
 ## Reproducibility Footer
 
