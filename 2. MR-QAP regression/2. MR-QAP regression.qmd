@@ -1,0 +1,83 @@
+---
+title: "Friendship Nominations QAP Analysis"
+author: "Tudor Luchiean"
+date: "2026-03-15"
+format:
+  html:
+    toc: true
+    code-fold: true
+    embed-resources: true
+---
+
+# Code used to solve the tasks:
+
+```{r}
+#| include: false
+source("01_DataPrep.R")
+source("02_Covariates.R")
+source("03_MRQAP.R")
+```
+
+## 2.1 Classroom 10 Basic QAP
+
+After cleaning the data and formatting it in a usable way this is the code that returns the result
+
+```{r}
+print(summary(nlTask1))
+```
+
+If one prints out the summary, we get that the friendship nominations in wave 2 are highly associated with friendship nominations in wave 1. The chances of a friendship persisting to the second wave if it was already established by the time of the first wave as compared to it not existing in the first wave is **roughly 15 fold**. Having a \*\*\*p-value (Pr(\>=b)) below 0.001 makes this result **highly significant**.
+
+```         
+Coefficients:
+            Estimate   Exp(b)     Pr(<=b) Pr(>=b) Pr(>=|b|)
+(intercept) -0.1663907  0.8467153 0.3778  0.6222  0.3814   
+x1           2.7398508 15.4846743 1.0000  0.0000  0.0000   
+```
+
+## 2.2 Co-variate Model Specification
+
+Variables x2-x4 represent the following:
+
+**x2: literacyRec**: `matrix(attrFinal[, "literacy_end"], nNodes, nNodes, byrow=FALSE)`\
+With the hypothesis, that high literacy students (column j) should get fewer nominations, so a negative effect.
+
+**x3: sameGender**: `outer(attrFinal[, "gender"], attrFinal[, "gender"], "==") * 1`\
+With the hypothesis, that same gender pairs (i,j) are more likely friends, so an expect positive effect.
+
+**x4: hiseiSend**: `matrix(attrFinal[, "HISEI"], nNodes, nNodes, byrow=TRUE)`\
+With the hypothesis, that High HISEI senders (row i) are to send more nominations, so an expect positive effect.
+
+Comparing the different waves and the attribute table and removing any student that does not have complete data in all of then leaves us with the cleaned and relevant data for the MR-QAP. With that, one can build the matrices.
+
+## 2.3+2.4 Full Model Results
+
+This code outputs the results for all the 8 classrooms for which data was provided
+
+```{r}
+print(allResults)
+```
+
+For the sub-task 2.3 one can look at the 10.x rows. As seen before, the significance of friendships from wave 1 carrying over to wave 2 remains very high. We can see a small drop off in the beta from \~2.74 to \~2.4 which can be due to the controlling for literacy/gender/HISEI. As for the hypothesis:
+
+-   The hypothesis that students with high ending literacy scores are less likely to receive friendship nominations **can not be supported**. While we can see a negligibly small multiplier, the p-value of 0.8646 makes this **statistically insignificant**.
+
+-   The hypothesis that a friendship nomination is more likely between a pair or students of the same gender **can be supported**. For students with the same gender, the probability of forming a friendship (same gender dyads), has **almost 7x higher odds**. This result is **statistically highly significant** as indicated by the \*\*\*p-value\<0.001.
+
+-   The hypothesis, that students with high HISEI send more friendship nominations **can be supported** for the 10th class. We have roughly **4.7% increase** of sending nomination to any receiver for each 1 unit increase in the sender's HISEI. This result is **statistically significant** with a \*\*p-value\<0.01.
+
+## 2.5 Cross-Classroom Patterns
+
+Analyzing the numbers for all the rooms results in the following conclusions and overarching patterns:
+
+-   Firstly, the stability of friendships seems to remain universally strong and very significant. With 7/8 \*\*\*p-values\<0.001, last one \~0.0016. The odds ratios range from a low of \~3.5x to a high of over 23x. The takeaway is that friendships persist regardless of class characteristics.
+
+-   Secondly, the gender homophily, so same-gendered friendships, is pretty robust. 4/8 classes show a very high significance of \*\*\*p-value\<0.001 while one falls in the category of \*\*p-value\<0.01 and one in the category of \*p-value\<0.05. Only two classes can be considered exceptions, class 4 and class 12. Both have a p-value far greater then 0.1, making them statistically insignificant. As for the significant ones, they range from a low of \~2.2x to a high of \~7.75x times likelihood to form a friendship when students have the same gender.
+
+-   Thirdly, if we do not only look at the 10th class, but rather at all 8 for which we have data, we see a slight change in the conclusion one might draw regarding the HISEI hypothesis. Only class 1, 9, 10 and 12 show any significance in the results. They range from a \*\*p-value of 0.0018 up to a \*p-value of 0.039. Thus, having half the classes give insignificant results is noteworthy and might change ones takeaway from the exception that is class 10. Furthermore, we can see that the multiplier value between the four significant classes points us in both directions, two show an increase, the other two a decrease in the likelihood of sending friendship nominations, ranging from \~0.96x to \~1.046x. All in all, the result we got from only looking at class 10 regarding the hypothesis is questionable at best. Generalizing it would be a mistake.
+
+-   The final variable we looked at was the ending literacy scores. There is no class here that showed any statistical significance, giving us no support for the hypothesis. And even if there was any, the effect of the literacy scores is negligible, never changing the outcome more then 2%. Thus we can say that literacy does not predict popularity.
+
+As for the generalizability: The w1 stability and same Gender homophily seem to be highly generalizable, matching results from studies done on this topic. The literacy is universally irrelevant. HISEI is context-specific and results in mixed directions, so one should take it with a grain of salt.
+
+**Note on reproducibility**: MR-QAP uses 5000 random permutations (\`reps=5000\`). Minor p-value/β fluctuations (±0.01) expected between runs due to randomization, but patterns are robust

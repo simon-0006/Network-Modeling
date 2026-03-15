@@ -1,4 +1,5 @@
 #------------------------------- IMPORTING -------------------------------------
+
 if (!require(sna)) install.packages("sna")
 if (!require(here)) install.packages("here")
 
@@ -8,6 +9,7 @@ dataList <- lapply(files, function(f) {  read.csv(f, sep=";", header=TRUE, row.n
 names(dataList) <- tools::file_path_sans_ext(basename(files))   # cut of the csv part
 
 MatricesRaw <- lapply(dataList, as.matrix)
+set.seed(161)
 
 #-------------------------------- CLEANING -------------------------------------
 
@@ -22,6 +24,13 @@ attrRaw <- MatricesRaw[grepl("attr", names(MatricesRaw), ignore.case=TRUE)][[1]]
 validStudents <- complete.cases(attrRaw)
 attrClean <- attrRaw[validStudents, ]    # clean the attributes matrix
 
+for(i in seq_along(networkMatricesClean)){
+  
+  colnames(networkMatricesClean[[i]]) <- sub("^X0*", "", colnames(networkMatricesClean[[i]]))
+  rownames(networkMatricesClean[[i]]) <- sub("^0*", "", rownames(networkMatricesClean[[i]]))
+  
+} # clean the leading X and 0
+
 saveRDS(networkMatricesClean, here("networkMatricesClean.rds"))                 # saves as RDS
 saveRDS(attrClean, here("attrClean.rds"))
 
@@ -35,5 +44,5 @@ W10_3d <- array(0, dim=c(nNodes, nNodes, 2))
 W10_3d[,,1] <- W1Clean  # Wave 1
 W10_3d[,,2] <- W2Clean # Wave 2
 
-nlTask1 <- netlogit(W2Clean, W1Clean, reps=1000, nullhyp="qapspp")
+nlTask1 <- netlogit(W2Clean, W1Clean, reps=5000, nullhyp="qapspp")
 print(summary(nlTask1))
