@@ -1,0 +1,86 @@
+# Idea
+
+The Network Autocorrelation Model assumes the data is distributed like:
+$$y = X\beta + \rho W y + \epsilon,$$
+where in our case $y$ is the ending literacy score, $X$ is the other attributes, $W$ is the wave 2 adjacency matrix and $\epsilon$ is distributed normally.
+
+So we just need to statistically estimate $\beta, \rho$.
+
+# Importing and cleaning Data
+
+```{r}
+#| message: false
+source("import_and_clean.R")
+w2netClean<-getNet("10")
+attrClean<-getAttr("10")
+```
+
+# Subtask 1
+
+Subtask 1 requires just Network Autocorrelation, without exogenous variables, so the model simplifies to
+$$y = \rho W y + \epsilon.$$
+
+We first add the Autocorrelation to the attributes dataframe:
+```{r}
+autocorrelation <- w2netClean %*% as.numeric(as.vector(attrClean[,"literacy_end"]))
+attrClean["autocorrelation"] <- autocorrelation
+```
+
+And then fit a model:
+```{r}
+model <- lm(literacy_end ~ autocorrelation, attrClean)
+print(model)
+plot(attrClean$autocorrelation, attrClean$literacy_end)
+abline(model)
+```
+
+# Subtask 2
+
+Subtask 2 adds HISEI and gender, giving the model described in **Idea**.
+
+Gender is a simple binary variable, encoding it as $0$ for male and $1$ for female should be sufficient:
+
+```{r}
+attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")
+print(attrClean)
+```
+
+Now we can basically reuse the code from **Subtask 1**, just adding gender and HISEI.
+
+```{r}
+model <- lm(literacy_end ~ autocorrelation + HISEI + gender, attrClean)
+print(model)
+```
+
+# Subtask 3
+
+The outcome actually suggests that the autocorrelation term is negatively correlated.
+But the value of the coefficient is very small, so it is not really a relevant result.
+
+# Subtask 4
+
+TODO (discuss with others)
+
+# Subtask 5
+
+```{r}
+for (classroom in c("01", "02", "03", "04", "05", "09", "10", "12")) {
+    w2netClean<-getNet(classroom)
+    attrClean<-getAttr(classroom)
+
+    autocorrelation <- w2netClean %*% as.numeric(as.vector(attrClean[,"literacy_end"]))
+    attrClean["autocorrelation"] <- autocorrelation
+
+    attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")    
+
+    model <- lm(literacy_end ~ autocorrelation + HISEI + gender, attrClean)
+    print(model)
+}
+```
+
+# Subtask 6
+
+WTF??
+
+
+TODO: FIX SEED!!
