@@ -8,6 +8,20 @@ So we just need to statistically estimate $\beta, \rho$.
 
 # Importing and cleaning Data
 
+We need to clean the data by removing all students with missing data. That can be missing friendship data, missing HISEI, missing gender, missing literacy, ...
+
+The important code-block for this cleaning is the following. We get all student ids and intersect them to get only the ones with complete data.
+
+```{r}
+#| eval: false
+ok_ids1 <- rownames(w2net)[complete.cases(w2net)]
+ok_ids2 <- rownames(attr)[complete.cases(attr)]
+
+ok_ids <- intersect(ok_ids1, ok_ids2)
+```
+
+The remaining code of `import_and_clean.R` will be uploaded along the pdf.
+
 ```{r}
 #| message: false
 source("import_and_clean.R")
@@ -20,18 +34,10 @@ attrClean<-getAttr("10")
 Subtask 1 requires just Network Autocorrelation, without exogenous variables, so the model simplifies to
 $$y = \rho W y + \epsilon.$$
 
-We first add the Autocorrelation to the attributes dataframe:
+So we fit a NAM model:
 ```{r}
-autocorrelation <- w2netClean %*% as.numeric(as.vector(attrClean[,"literacy_end"]))
-attrClean["autocorrelation"] <- autocorrelation
-```
-
-And then fit a model:
-```{r}
-model <- lm(literacy_end ~ autocorrelation, attrClean)
+model <- lnam(y=attrClean$literacy_end, x=NULL, W1=w2netClean)
 print(model)
-plot(attrClean$autocorrelation, attrClean$literacy_end)
-abline(model)
 ```
 
 # Subtask 2
@@ -42,20 +48,20 @@ Gender is a simple binary variable, encoding it as $0$ for male and $1$ for fema
 
 ```{r}
 attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")
-print(attrClean)
 ```
 
-Now we can basically reuse the code from **Subtask 1**, just adding gender and HISEI.
+Now we can basically reuse the code from **Subtask 1**, just adding gender and HISEI in the $X$ matrix.
 
 ```{r}
-model <- lm(literacy_end ~ autocorrelation + HISEI + gender, attrClean)
+X <- model.matrix(literacy_end~ gender + HISEI, data = attrClean)
+model <- lnam(attrClean$literacy_end, X, w2netClean)
 print(model)
 ```
 
 # Subtask 3
 
 The outcome actually suggests that the autocorrelation term is negatively correlated.
-But the value of the coefficient is very small, so it is not really a relevant result.
+<!-- But the value of the coefficient is very small, so it is not really a relevant result. -->
 
 # Subtask 4
 
@@ -68,19 +74,13 @@ for (classroom in c("01", "02", "03", "04", "05", "09", "10", "12")) {
     w2netClean<-getNet(classroom)
     attrClean<-getAttr(classroom)
 
-    autocorrelation <- w2netClean %*% as.numeric(as.vector(attrClean[,"literacy_end"]))
-    attrClean["autocorrelation"] <- autocorrelation
-
     attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")    
 
-    model <- lm(literacy_end ~ autocorrelation + HISEI + gender, attrClean)
+    X <- model.matrix(literacy_end~ gender + HISEI, data = attrClean)
+    model <- lnam(attrClean$literacy_end, X, w2netClean)
     print(model)
 }
 ```
 
 # Subtask 6
 
-WTF??
-
-
-TODO: FIX SEED!!
