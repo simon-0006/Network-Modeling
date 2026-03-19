@@ -1,29 +1,31 @@
 ---
 title: "Assignment 1"
 format: html
+execute:
+  cache: true
 ---
 
 # Task 1: Tie Dependence and CUGs
 
 ## Setup
 
-```{r}
+```{r setup}
 # Given by task statement
 set.seed(161)
 n_perm <- 5000
 
 m <- 134
-M <- 42
-A <- 50
-N <- 139
+m <- 42
+a <- 50
+n <- 139
 
 # Data path from this folder to the project Data folder
 data_path <- "Lintner_Data/10_W1.csv"
 ```
 
-### Load Network and Remove Affected Data
+#### Load Network and Remove Affected Data
 
-```{r}
+```{r load-network}
 # 1) Load network with blanks as NA
 raw_net <- read.csv2(
   "../Data/10_W1.csv",   # adjust path if needed
@@ -57,9 +59,9 @@ stopifnot(nrow(A_clean) == ncol(A_clean))
 stopifnot(all(A_clean %in% c(0, 1)))
 ```
 
-### Summary Table
+#### Summary Table
 
-```{r}
+```{r summary-table}
 summary_table <- data.frame(
   metric = c("Original nodes", "Dropped nodes", "Cleaned nodes", "Remaining NA", "Ties in cleaned network"),
   value = c(
@@ -80,9 +82,9 @@ knitr::kable(summary_table, caption = "Cleaning Summary")
 knitr::kable(nodes_drop_table, caption = "Dropped Node IDs")
 ```
 
-### Cleaned 10_W1 CSV 
+#### Cleaned 10_W1 CSV 
 
-```{r}
+```{r save-clean-csv}
 # Save cleaned adjacency matrix as a CSV next to this qmd
 clean_csv_path <- "10_W1_clean.csv"
 write.csv2(
@@ -91,27 +93,102 @@ write.csv2(
   row.names = FALSE,
   quote = FALSE
 )
-
-# Read the cleaned CSV and render it as a table in the report
-clean_csv_tbl <- read.csv2(clean_csv_path, check.names = FALSE)
-knitr::kable(clean_csv_tbl, caption = "Cleaned 10_W1 (CSV Render)")
 ```
 
 ## Task 1.1
 *Compute probability $p$ of observing a tie if you choose one possible dyad at random*
 
-```{r}
-nodes = nrow(A_clean)
-ties  = sum(A_clean)
+```{r task-1-1-tie-prob}
+nodes = nrow(raw_net) # We work with the raw input (not the cleaned A_clean)
+ties  = sum(raw_net, na.rm = TRUE)
 
 # P[tie] = |ties| / |total number of possible ties|
-p = ties / ((nodes) * (nodes - 1) / 2)
+n_dyads = (nodes) * (nodes - 1) / 2
+p = ties / n_dyads
 cat("Probability[Observing a Tie] = ", p, "\n")
 ```
 
+## Task 1.2
+*Compute the probabilities $p_M, p_A, p_N$ of observing a mutual, asymmetric and null dyad*
+
+```{r task-1-2-dyad-probs}
+# Convert to numeric matrix, treating NA as missing
+A_raw <- as.matrix(raw_net)
+storage.mode(A_raw) <- "numeric"
+
+# Get upper triangle indices (each dyad counted once, i < j)
+upper <- upper.tri(A_raw)
+ij <- A_raw[upper]          # tie from i -> j
+ji <- t(A_raw)[upper]       # tie from j -> i
+
+n_mutual     <- sum(ij == 1 & ji == 1, na.rm = TRUE)
+n_asymmetric <- sum(xor(ij == 1, ji == 1), na.rm = TRUE)
+n_null       <- sum(ij == 0 & ji == 0, na.rm = TRUE)
+n_nan        <- n_dyads - (n_mutual + n_asymmetric + n_null)
+
+p_M <- n_mutual     / n_dyads
+p_A <- n_asymmetric / n_dyads
+p_N <- n_null       / n_dyads
+p_Na <- n_nan / n_dyads
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null", "Rest (NA)", "Total"),
+    Count       = c(n_mutual, n_asymmetric, n_null, n_nan, n_dyads),
+    Probability = c(p_M, p_A, p_N, p_Na, p_M + p_A + p_N + p_Na)
+  ),
+  digits = 4,
+  caption = "Dyad Census"
+)
+```
+
+## Task 1.3
+*What would be the value of the probabilities in (2) if we assume tie independence and that the probability of observing a tie takes the value $p$ computed in (1)?*
+
+```{r task-1-3-tie-prob-uniform}
+# T : Tie
+# N : No Tie
+# 
+# p[T] = p
+# p[N] = 1 - p
+# 
+#      . 
+#     / \ 
+#   T     N
+#  /\     /\   
+# t  N   T  N
+
+p_uni_M <- p * p
+p_uni_A <- 2 * p * (1 - p)
+p_uni_N <- (1 - p) * (1 - p)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Probability = c(p_uni_M, p_uni_A, p_uni_N)
+  ),
+  digits = 4,
+  caption = "Dyad Census"
+)
+```
+
+## Task 1.4
+*Given the values obtained in (2) and (3), would it be reasonable to assume tie independence when performing further analysis on the observed network? Justify*
+
+No definitely not. The individual probabilities of mutual, asymmetric and null diads do not even match closely.
+
+## Task 1.5
+*Consider a different model that assumes all nodes have an outdegree of nine (d=9).*
+*Compute the probability of a mutual tie assuming tie independence. Compare this probability with the probabilities computed in (2) and (3). Would it be reasonable to assume this model?*
+
+```{r task-1-5-different-model}
+
+```
+
+
 ## Reproducibility Footer
 
-```{r}
+```{r session-info}
 cat("Seed used:", 161, "\n")
 cat("Permutations used:", n_perm, "\n")
 sessionInfo()
