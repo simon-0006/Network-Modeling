@@ -10,14 +10,18 @@ execute:
 ## Setup
 
 ```{r setup}
+library(sna)
+library(network)
+
 # Given by task statement
 set.seed(161)
 n_perm <- 5000
 
+n <- 22
 m <- 134
-m <- 42
-a <- 50
-n <- 139
+M <- 42
+A <- 50
+N <- 139
 
 # Data path from this folder to the project Data folder
 data_path <- "Lintner_Data/10_W1.csv"
@@ -40,19 +44,19 @@ row_ids <- rownames(raw_net)
 col_ids <- colnames(raw_net)
 
 # Convert to numeric matrix and align to common IDs on both axes
-A <- as.matrix(raw_net)
-storage.mode(A) <- "numeric"
-rownames(A) <- row_ids
-colnames(A) <- col_ids
+A_raw <- as.matrix(raw_net)
+storage.mode(A_raw) <- "numeric"
+rownames(A_raw) <- row_ids
+colnames(A_raw) <- col_ids
 
 common_ids <- intersect(row_ids, col_ids)
-A <- A[common_ids, common_ids, drop = FALSE]
+A_raw <- A_raw[common_ids, common_ids, drop = FALSE]
 
 # 2) Identify nodes affected by missing tie data
-nodes_drop <- rownames(A)[rowSums(is.na(A)) > 0]
+nodes_drop <- rownames(A_raw)[rowSums(is.na(A_raw)) > 0]
 
 # 3) Remove affected nodes from network (row + column)
-A_clean <- A[!(rownames(A) %in% nodes_drop), !(colnames(A) %in% nodes_drop), drop = FALSE]
+A_clean <- A_raw[!(rownames(A_raw) %in% nodes_drop), !(colnames(A_raw) %in% nodes_drop), drop = FALSE]
 
 # 4) Final checks
 stopifnot(nrow(A_clean) == ncol(A_clean))
@@ -65,7 +69,7 @@ stopifnot(all(A_clean %in% c(0, 1)))
 summary_table <- data.frame(
   metric = c("Original nodes", "Dropped nodes", "Cleaned nodes", "Remaining NA", "Ties in cleaned network"),
   value = c(
-    nrow(A),
+    nrow(A_raw),
     length(nodes_drop),
     nrow(A_clean),
     sum(is.na(A_clean)),
@@ -99,12 +103,13 @@ write.csv2(
 *Compute probability $p$ of observing a tie if you choose one possible dyad at random*
 
 ```{r task-1-1-tie-prob}
-nodes = nrow(raw_net) # We work with the raw input (not the cleaned A_clean)
-ties  = sum(raw_net, na.rm = TRUE)
+nodes = n
+ties  = m
 
 # P[tie] = |ties| / |total number of possible ties|
-n_dyads = (nodes) * (nodes - 1) / 2
-p = ties / n_dyads
+n_dyads = nodes * (nodes - 1) / 2
+n_ties = nodes * (nodes - 1)
+p = ties / n_ties
 cat("Probability[Observing a Tie] = ", p, "\n")
 ```
 
@@ -112,30 +117,19 @@ cat("Probability[Observing a Tie] = ", p, "\n")
 *Compute the probabilities $p_M, p_A, p_N$ of observing a mutual, asymmetric and null dyad*
 
 ```{r task-1-2-dyad-probs}
-# Convert to numeric matrix, treating NA as missing
-A_raw <- as.matrix(raw_net)
-storage.mode(A_raw) <- "numeric"
-
-# Get upper triangle indices (each dyad counted once, i < j)
-upper <- upper.tri(A_raw)
-ij <- A_raw[upper]          # tie from i -> j
-ji <- t(A_raw)[upper]       # tie from j -> i
-
-n_mutual     <- sum(ij == 1 & ji == 1, na.rm = TRUE)
-n_asymmetric <- sum(xor(ij == 1, ji == 1), na.rm = TRUE)
-n_null       <- sum(ij == 0 & ji == 0, na.rm = TRUE)
-n_nan        <- n_dyads - (n_mutual + n_asymmetric + n_null)
+n_mutual     <- M
+n_asymmetric <- A
+n_null       <- N
 
 p_M <- n_mutual     / n_dyads
 p_A <- n_asymmetric / n_dyads
 p_N <- n_null       / n_dyads
-p_Na <- n_nan / n_dyads
 
 knitr::kable(
   data.frame(
-    Dyad        = c("Mutual", "Asymmetric", "Null", "Rest (NA)", "Total"),
-    Count       = c(n_mutual, n_asymmetric, n_null, n_nan, n_dyads),
-    Probability = c(p_M, p_A, p_N, p_Na, p_M + p_A + p_N + p_Na)
+    Dyad        = c("Mutual", "Asymmetric", "Null", "Total"),
+    Count       = c(n_mutual, n_asymmetric, n_null, n_dyads),
+    Probability = c(p_M, p_A, p_N, p_M + p_A + p_N)
   ),
   digits = 4,
   caption = "Dyad Census"
@@ -175,16 +169,69 @@ knitr::kable(
 ## Task 1.4
 *Given the values obtained in (2) and (3), would it be reasonable to assume tie independence when performing further analysis on the observed network? Justify*
 
-No definitely not. The individual probabilities of mutual, asymmetric and null diads do not even match closely.
+No, it would not be reasonable to assume tie independence.
+
+```{r task-1-4-comparison}
+observed    <- c(p_M, p_A, p_N)
+independent <- c(p_uni_M, p_uni_A, p_uni_N)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Observed    = observed,
+    Independent = independent,
+    Factor      = observed / independent
+  ),
+  digits = 4,
+  caption = "Observed vs. Independence Assumption"
+)
+```
+
+As shown in the table we observe roughly twice as many mutual ties as we would by assuming independence.
+On the other hand asymmetric ties would be overrepresented by the assumption of independence.
 
 ## Task 1.5
 *Consider a different model that assumes all nodes have an outdegree of nine (d=9).*
 *Compute the probability of a mutual tie assuming tie independence. Compare this probability with the probabilities computed in (2) and (3). Would it be reasonable to assume this model?*
 
 ```{r task-1-5-different-model}
+m_nine <- n * 9
+p_nine <- m_nine / n_ties
+cat("Probability[Observing a Tie given (d=9)] = ", p_nine, "\n")
 
+p_nine_M <- p_nine * p_nine
+p_nine_A <- 2 * p_nine * (1 - p_nine)
+p_nine_N <- (1 - p_nine) * (1 - p_nine)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Observed    = c(p_M, p_A, p_N),
+    `d=9`       = c(p_nine_M, p_nine_A, p_nine_N),
+    Factor      = c(p_M, p_A, p_N) / c(p_nine_M, p_nine_A, p_nine_N)
+  ),
+  check.names = FALSE,
+  digits = 4,
+  caption = "Observed vs. d=9 Independence Model"
+)
 ```
 
+**Comment about this model:**\
+As we can see this model aligns pretty well the probability of observing a mutual dyad.
+On the other hand are asymmetric and null dyads not closely aligned.
+
+If we think about how many ties there are: $22 \cdot 9 = 198$, we see it is a lot more than the actual number of ties which is $m = 134$.\
+Logically (by assuming tie independence) we would need to pick $d = m/n = 134/22 \approx 6$.\
+
+*Conclusion*: We can match one statistic (in that case mutuality) by tuning a parameter, but the overall dyad distribution still doesn't fit. This means this model isn't adequate either.
+
+## Task 1.6
+*Load the packages `sna` and `network` in R. Import the file `10_W1.csv` as a matrix object. The R function `cug.test` perform a CUG test in R. Run the following commands in R:*
+```{r task-1-6-prelimimary loading}
+cguRec <- cug.test(A_clean, grecip, cmode = "edges", reps=5000)
+cugInd <- cug.test(A_clean, centralization, cmode="edges", FUN.arg=list(FUN=degree, cmode="indegree"), reps=5000)
+cugTrans <- cug.test(A_clean, gtrans, cmode = "dyad.census", reps=5000)
+```
 
 ## Reproducibility Footer
 
