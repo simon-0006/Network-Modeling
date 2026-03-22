@@ -86,7 +86,7 @@ knitr::kable(summary_table, caption = "Cleaning Summary")
 knitr::kable(nodes_drop_table, caption = "Dropped Node IDs")
 ```
 
-#### Cleaned 10_W1 CSV 
+#### Cleaned 10_W1 CSV
 
 ```{r save-clean-csv}
 # Save cleaned adjacency matrix as a CSV next to this qmd
@@ -142,14 +142,14 @@ knitr::kable(
 ```{r task-1-3-tie-prob-uniform}
 # T : Tie
 # N : No Tie
-# 
+#
 # p[T] = p
 # p[N] = 1 - p
-# 
-#      . 
-#     / \ 
+#
+#      .
+#     / \
 #   T     N
-#  /\     /\   
+#  /\     /\
 # t  N   T  N
 
 p_uni_M <- p * p
@@ -227,11 +227,64 @@ Logically (by assuming tie independence) we would need to pick $d = m/n = 134/22
 
 ## Task 1.6
 *Load the packages `sna` and `network` in R. Import the file `10_W1.csv` as a matrix object. The R function `cug.test` perform a CUG test in R. Run the following commands in R:*
-```{r task-1-6-prelimimary loading}
-cguRec <- cug.test(A_clean, grecip, cmode = "edges", reps=5000)
-cugInd <- cug.test(A_clean, centralization, cmode="edges", FUN.arg=list(FUN=degree, cmode="indegree"), reps=5000)
-cugTrans <- cug.test(A_clean, gtrans, cmode = "dyad.census", reps=5000)
+```{r task-1-6-prelimimary-loading}
+cguRec <- cug.test(A_clean, grecip, cmode = "edges", reps=n_perm)
+cugInd <- cug.test(A_clean, centralization, cmode="edges", FUN.arg=list(FUN=degree, cmode="indegree"), reps=n_perm)
+cugTrans <- cug.test(A_clean, gtrans, cmode = "dyad.census", reps=n_perm)
 ```
+
+### Task 1.6.1
+*State the hypotheses and the conditional features of the tests* (*Use the help function `?cug.test` to understand the command lines*)
+
+All three tests share the same structure: we compare an observed network statistic against a distribution of that statistic computed over random graphs that preserve a specific feature of the observed network.
+
+The first test (`cguRec`) measures reciprocity (`grecip`) conditioned on the number of edges (`cmode = "edges"`). Random graphs are generated with the same edge count as the observed network.\
+$H_0$: The observed reciprocity is no more extreme than expected in random networks with the same number of edges.\
+$H_A$: The observed reciprocity is more extreme than expected.
+
+The second test (`cugInd`) measures indegree centralization (`centralization` with `FUN = degree, cmode = "indegree"`), also conditioned on the number of edges.\
+$H_0$: The observed indegree centralization is no more extreme than expected in random networks with the same number of edges.\
+$H_A$: The observed indegree centralization is more extreme than expected.
+
+The third test (`cugTrans`) measures transitivity (`gtrans`) conditioned on the dyad census (`cmode = "dyad.census"`). Random graphs are generated preserving the exact counts $M$, $A$, $N$.\
+$H_0$: The observed transitivity is no more extreme than expected in random networks with the same dyad census.\
+$H_A$: The observed transitivity is more extreme than expected.
+
+### Task 1.6.2
+*Interpret the results*
+
+```{r task-1-6-2-results}
+alpha <- 0.05
+
+cug_summary <- data.frame(
+  Test        = c("Reciprocity", "Indegree Centralization", "Transitivity"),
+  Conditioning = c("edges", "edges", "dyad.census"),
+  `Observed Value` = c(cguRec$obs.stat, cugInd$obs.stat, cugTrans$obs.stat),
+  `Pr(X>=Obs)`     = c(cguRec$pgteobs, cugInd$pgteobs, cugTrans$pgteobs),
+  `Pr(X<=Obs)`     = c(cguRec$plteobs, cugInd$plteobs, cugTrans$plteobs),
+  Decision    = ifelse(
+    pmin(c(cguRec$pgteobs, cugInd$pgteobs, cugTrans$pgteobs),
+         c(cguRec$plteobs, cugInd$plteobs, cugTrans$plteobs)) < alpha,
+    "Reject H0", "Fail to reject H0"
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(cug_summary, digits = 4, caption = "CUG Test Results (alpha = 0.05)")
+```
+
+```{r task-1-6-2-plots, fig.width=10, fig.height=4}
+par(mfrow = c(1, 3))
+plot(cguRec, main = "CUG: Reciprocity\n(conditioned on edges)")
+plot(cugInd, main = "CUG: Indegree Centralization\n(conditioned on edges)")
+plot(cugTrans, main = "CUG: Transitivity\n(conditioned on dyad census)")
+```
+
+As shown in the table, the reciprocity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. The observed reciprocity (0.77) is significantly higher than what random networks with the same density produce. This is consistent with our findings in Tasks 1.2–1.4 where mutual ties were roughly twice as frequent as expected under independence.
+
+For indegree centralization we get $Pr(X \geq Obs) \approx 0.77$, so we **fail to reject $H_0$**. The observed centralization (0.20) falls well within the range of random networks with the same edge count. The distribution of popularity across students is not significantly more unequal than what we would expect by chance.
+
+The transitivity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. Even after controlling for the dyad census, the observed transitivity (0.54) is significantly higher than expected. This means the network exhibits "friend of a friend" clustering beyond what reciprocity alone would produce — if $i \to j$ and $j \to k$, then $i \to k$ is more likely than expected.
 
 ## Reproducibility Footer
 
@@ -240,4 +293,3 @@ cat("Seed used:", 161, "\n")
 cat("Permutations used:", n_perm, "\n")
 sessionInfo()
 ```
-

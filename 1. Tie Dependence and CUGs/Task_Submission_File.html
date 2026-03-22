@@ -384,14 +384,14 @@ copyright (c) 2005, Carter T. Butts, University of California-Irvine
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># T : Tie</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># N : No Tie</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># p[T] = p</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># p[N] = 1 - p</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">#      . </span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#     / \ </span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">#      .</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#     / \</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   T     N</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">#  /\     /\   </span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">#  /\     /\</span></span>
 <span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># t  N   T  N</span></span>
 <span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>p_uni_M <span class="ot">&lt;-</span> p <span class="sc">*</span> p</span>
@@ -557,23 +557,125 @@ Logically (by assuming tie independence) we would need to pick <span class="math
 <h2 class="anchored" data-anchor-id="task-1.6">Task 1.6</h2>
 <p><em>Load the packages <code>sna</code> and <code>network</code> in R. Import the file <code>10_W1.csv</code> as a matrix object. The R function <code>cug.test</code> perform a CUG test in R. Run the following commands in R:</em></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cguRec <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, grecip, <span class="at">cmode =</span> <span class="st">"edges"</span>, <span class="at">reps=</span><span class="dv">5000</span>)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>cugInd <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, centralization, <span class="at">cmode=</span><span class="st">"edges"</span>, <span class="at">FUN.arg=</span><span class="fu">list</span>(<span class="at">FUN=</span>degree, <span class="at">cmode=</span><span class="st">"indegree"</span>), <span class="at">reps=</span><span class="dv">5000</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>cugTrans <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, gtrans, <span class="at">cmode =</span> <span class="st">"dyad.census"</span>, <span class="at">reps=</span><span class="dv">5000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cguRec <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, grecip, <span class="at">cmode =</span> <span class="st">"edges"</span>, <span class="at">reps=</span>n_perm)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>cugInd <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, centralization, <span class="at">cmode=</span><span class="st">"edges"</span>, <span class="at">FUN.arg=</span><span class="fu">list</span>(<span class="at">FUN=</span>degree, <span class="at">cmode=</span><span class="st">"indegree"</span>), <span class="at">reps=</span>n_perm)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>cugTrans <span class="ot">&lt;-</span> <span class="fu">cug.test</span>(A_clean, gtrans, <span class="at">cmode =</span> <span class="st">"dyad.census"</span>, <span class="at">reps=</span>n_perm)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<section id="task-1.6.1" class="level3">
+<h3 class="anchored" data-anchor-id="task-1.6.1">Task 1.6.1</h3>
+<p><em>State the hypotheses and the conditional features of the tests</em> (<em>Use the help function <code>?cug.test</code> to understand the command lines</em>)</p>
+<p>All three tests share the same structure: we compare an observed network statistic against a distribution of that statistic computed over random graphs that preserve a specific feature of the observed network.</p>
+<p>The first test (<code>cguRec</code>) measures reciprocity (<code>grecip</code>) conditioned on the number of edges (<code>cmode = "edges"</code>). Random graphs are generated with the same edge count as the observed network.<br>
+<span class="math inline">\(H_0\)</span>: The observed reciprocity is no more extreme than expected in random networks with the same number of edges.<br>
+<span class="math inline">\(H_A\)</span>: The observed reciprocity is more extreme than expected.</p>
+<p>The second test (<code>cugInd</code>) measures indegree centralization (<code>centralization</code> with <code>FUN = degree, cmode = "indegree"</code>), also conditioned on the number of edges.<br>
+<span class="math inline">\(H_0\)</span>: The observed indegree centralization is no more extreme than expected in random networks with the same number of edges.<br>
+<span class="math inline">\(H_A\)</span>: The observed indegree centralization is more extreme than expected.</p>
+<p>The third test (<code>cugTrans</code>) measures transitivity (<code>gtrans</code>) conditioned on the dyad census (<code>cmode = "dyad.census"</code>). Random graphs are generated preserving the exact counts <span class="math inline">\(M\)</span>, <span class="math inline">\(A\)</span>, <span class="math inline">\(N\)</span>.<br>
+<span class="math inline">\(H_0\)</span>: The observed transitivity is no more extreme than expected in random networks with the same dyad census.<br>
+<span class="math inline">\(H_A\)</span>: The observed transitivity is more extreme than expected.</p>
+</section>
+<section id="task-1.6.2" class="level3">
+<h3 class="anchored" data-anchor-id="task-1.6.2">Task 1.6.2</h3>
+<p><em>Interpret the results</em></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>cug_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Test        =</span> <span class="fu">c</span>(<span class="st">"Reciprocity"</span>, <span class="st">"Indegree Centralization"</span>, <span class="st">"Transitivity"</span>),</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Conditioning =</span> <span class="fu">c</span>(<span class="st">"edges"</span>, <span class="st">"edges"</span>, <span class="st">"dyad.census"</span>),</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Observed Value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(cguRec<span class="sc">$</span>obs.stat, cugInd<span class="sc">$</span>obs.stat, cugTrans<span class="sc">$</span>obs.stat),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Pr(X&gt;=Obs)</span><span class="st">`</span>     <span class="ot">=</span> <span class="fu">c</span>(cguRec<span class="sc">$</span>pgteobs, cugInd<span class="sc">$</span>pgteobs, cugTrans<span class="sc">$</span>pgteobs),</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Pr(X&lt;=Obs)</span><span class="st">`</span>     <span class="ot">=</span> <span class="fu">c</span>(cguRec<span class="sc">$</span>plteobs, cugInd<span class="sc">$</span>plteobs, cugTrans<span class="sc">$</span>plteobs),</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">Decision    =</span> <span class="fu">ifelse</span>(</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pmin</span>(<span class="fu">c</span>(cguRec<span class="sc">$</span>pgteobs, cugInd<span class="sc">$</span>pgteobs, cugTrans<span class="sc">$</span>pgteobs),</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>         <span class="fu">c</span>(cguRec<span class="sc">$</span>plteobs, cugInd<span class="sc">$</span>plteobs, cugTrans<span class="sc">$</span>plteobs)) <span class="sc">&lt;</span> alpha,</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Reject H0"</span>, <span class="st">"Fail to reject H0"</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">check.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(cug_summary, <span class="at">digits =</span> <span class="dv">4</span>, <span class="at">caption =</span> <span class="st">"CUG Test Results (alpha = 0.05)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>CUG Test Results (alpha = 0.05)</caption>
+<colgroup>
+<col style="width: 26%">
+<col style="width: 14%">
+<col style="width: 16%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 19%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Test</th>
+<th style="text-align: left;">Conditioning</th>
+<th style="text-align: right;">Observed Value</th>
+<th style="text-align: right;">Pr(X&gt;=Obs)</th>
+<th style="text-align: right;">Pr(X&lt;=Obs)</th>
+<th style="text-align: left;">Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Reciprocity</td>
+<td style="text-align: left;">edges</td>
+<td style="text-align: right;">0.7737</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">1.0000</td>
+<td style="text-align: left;">Reject H0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Indegree Centralization</td>
+<td style="text-align: left;">edges</td>
+<td style="text-align: right;">0.2022</td>
+<td style="text-align: right;">0.7712</td>
+<td style="text-align: right;">0.6252</td>
+<td style="text-align: left;">Fail to reject H0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Transitivity</td>
+<td style="text-align: left;">dyad.census</td>
+<td style="text-align: right;">0.5360</td>
+<td style="text-align: right;">0.0000</td>
+<td style="text-align: right;">1.0000</td>
+<td style="text-align: left;">Reject H0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>))</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(cguRec, <span class="at">main =</span> <span class="st">"CUG: Reciprocity</span><span class="sc">\n</span><span class="st">(conditioned on edges)"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(cugInd, <span class="at">main =</span> <span class="st">"CUG: Indegree Centralization</span><span class="sc">\n</span><span class="st">(conditioned on edges)"</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(cugTrans, <span class="at">main =</span> <span class="st">"CUG: Transitivity</span><span class="sc">\n</span><span class="st">(conditioned on dyad census)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Task_Submission_File_files/figure-html/task-1-6-2-plots-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As shown in the table, the reciprocity test yields <span class="math inline">\(Pr(X \geq Obs) \approx 0\)</span>, so we <strong>reject <span class="math inline">\(H_0\)</span></strong>. The observed reciprocity (0.77) is significantly higher than what random networks with the same density produce. This is consistent with our findings in Tasks 1.2–1.4 where mutual ties were roughly twice as frequent as expected under independence.</p>
+<p>For indegree centralization we get <span class="math inline">\(Pr(X \geq Obs) \approx 0.77\)</span>, so we <strong>fail to reject <span class="math inline">\(H_0\)</span></strong>. The observed centralization (0.20) falls well within the range of random networks with the same edge count. The distribution of popularity across students is not significantly more unequal than what we would expect by chance.</p>
+<p>The transitivity test yields <span class="math inline">\(Pr(X \geq Obs) \approx 0\)</span>, so we <strong>reject <span class="math inline">\(H_0\)</span></strong>. Even after controlling for the dyad census, the observed transitivity (0.54) is significantly higher than expected. This means the network exhibits “friend of a friend” clustering beyond what reciprocity alone would produce — if <span class="math inline">\(i \to j\)</span> and <span class="math inline">\(j \to k\)</span>, then <span class="math inline">\(i \to k\)</span> is more likely than expected.</p>
+</section>
 </section>
 <section id="reproducibility-footer" class="level2">
 <h2 class="anchored" data-anchor-id="reproducibility-footer">Reproducibility Footer</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Seed used:"</span>, <span class="dv">161</span>, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Seed used:"</span>, <span class="dv">161</span>, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Seed used: 161 </code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Permutations used:"</span>, n_perm, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Permutations used:"</span>, n_perm, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Permutations used: 5000 </code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.5.2 (2025-10-31)
 Platform: aarch64-apple-darwin20
