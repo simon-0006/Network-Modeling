@@ -1,0 +1,295 @@
+---
+title: "Assignment 1"
+format: html
+execute:
+  cache: false 
+---
+
+# Task 1: Tie Dependence and CUGs
+
+## Setup
+
+```{r setup}
+library(sna)
+library(network)
+
+# Given by task statement
+set.seed(161)
+n_perm <- 5000
+
+n <- 22
+m <- 134
+M <- 42
+A <- 50
+N <- 139
+
+# Data path from this folder to the project Data folder
+data_path <- "1. Tie Dependence and CUGs/Lintner_Data/10_W1.csv"
+```
+
+#### Load Network and Remove Affected Data
+
+```{r load-network}
+# 1) Load network with blanks as NA
+raw_net <- read.csv2(
+  data_path,   # adjust path if needed
+  header = TRUE,
+  row.names = 1,
+  check.names = FALSE,
+  na.strings = c("", "NA")
+)
+
+# Keep original node labels and normalize possible "X" prefixes in numeric IDs
+row_ids <- rownames(raw_net)
+col_ids <- colnames(raw_net)
+
+# Convert to numeric matrix and align to common IDs on both axes
+A_raw <- as.matrix(raw_net)
+storage.mode(A_raw) <- "numeric"
+rownames(A_raw) <- row_ids
+colnames(A_raw) <- col_ids
+
+common_ids <- intersect(row_ids, col_ids)
+A_raw <- A_raw[common_ids, common_ids, drop = FALSE]
+
+# 2) Identify nodes affected by missing tie data
+nodes_drop <- rownames(A_raw)[rowSums(is.na(A_raw)) > 0]
+
+# 3) Remove affected nodes from network (row + column)
+A_clean <- A_raw[!(rownames(A_raw) %in% nodes_drop), !(colnames(A_raw) %in% nodes_drop), drop = FALSE]
+
+# 4) Final checks
+stopifnot(nrow(A_clean) == ncol(A_clean))
+stopifnot(all(A_clean %in% c(0, 1)))
+```
+
+#### Summary Table
+
+```{r summary-table}
+summary_table <- data.frame(
+  metric = c("Original nodes", "Dropped nodes", "Cleaned nodes", "Remaining NA", "Ties in cleaned network"),
+  value = c(
+    nrow(A_raw),
+    length(nodes_drop),
+    nrow(A_clean),
+    sum(is.na(A_clean)),
+    sum(A_clean)
+  )
+)
+
+nodes_drop_table <- data.frame(
+  dropped_node = if (length(nodes_drop) == 0) NA_character_ else nodes_drop,
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(summary_table, caption = "Cleaning Summary")
+knitr::kable(nodes_drop_table, caption = "Dropped Node IDs")
+```
+
+#### Cleaned 10_W1 CSV
+
+```{r save-clean-csv}
+# Save cleaned adjacency matrix as a CSV next to this qmd
+clean_csv_path <- "10_W1_clean.csv"
+write.csv2(
+  data.frame(node = rownames(A_clean), A_clean, check.names = FALSE),
+  file = clean_csv_path,
+  row.names = FALSE,
+  quote = FALSE
+)
+```
+
+## Task 1.1
+*Compute probability $p$ of observing a tie if you choose one possible dyad at random*
+
+```{r task-1-1-tie-prob}
+nodes = n
+ties  = m
+
+# P[tie] = |ties| / |total number of possible ties|
+n_dyads = nodes * (nodes - 1) / 2
+n_ties = nodes * (nodes - 1)
+p = ties / n_ties
+cat("Probability[Observing a Tie] = ", p, "\n")
+```
+
+## Task 1.2
+*Compute the probabilities $p_M, p_A, p_N$ of observing a mutual, asymmetric and null dyad*
+
+```{r task-1-2-dyad-probs}
+n_mutual     <- M
+n_asymmetric <- A
+n_null       <- N
+
+p_M <- n_mutual     / n_dyads
+p_A <- n_asymmetric / n_dyads
+p_N <- n_null       / n_dyads
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null", "Total"),
+    Count       = c(n_mutual, n_asymmetric, n_null, n_dyads),
+    Probability = c(p_M, p_A, p_N, p_M + p_A + p_N)
+  ),
+  digits = 4,
+  caption = "Dyad Census"
+)
+```
+
+## Task 1.3
+*What would be the value of the probabilities in (2) if we assume tie independence and that the probability of observing a tie takes the value $p$ computed in (1)?*
+
+```{r task-1-3-tie-prob-uniform}
+# T : Tie
+# N : No Tie
+#
+# p[T] = p
+# p[N] = 1 - p
+#
+#      .
+#     / \
+#   T     N
+#  /\     /\
+# t  N   T  N
+
+p_uni_M <- p * p
+p_uni_A <- 2 * p * (1 - p)
+p_uni_N <- (1 - p) * (1 - p)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Probability = c(p_uni_M, p_uni_A, p_uni_N)
+  ),
+  digits = 4,
+  caption = "Dyad Census"
+)
+```
+
+## Task 1.4
+*Given the values obtained in (2) and (3), would it be reasonable to assume tie independence when performing further analysis on the observed network? Justify*
+
+No, it would not be reasonable to assume tie independence.
+
+```{r task-1-4-comparison}
+observed    <- c(p_M, p_A, p_N)
+independent <- c(p_uni_M, p_uni_A, p_uni_N)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Observed    = observed,
+    Independent = independent,
+    Factor      = observed / independent
+  ),
+  digits = 4,
+  caption = "Observed vs. Independence Assumption"
+)
+```
+
+As shown in the table we observe roughly twice as many mutual ties as we would by assuming independence.
+On the other hand asymmetric ties would be overrepresented by the assumption of independence.
+
+## Task 1.5
+*Consider a different model that assumes all nodes have an outdegree of nine (d=9).*
+*Compute the probability of a mutual tie assuming tie independence. Compare this probability with the probabilities computed in (2) and (3). Would it be reasonable to assume this model?*
+
+```{r task-1-5-different-model}
+m_nine <- n * 9
+p_nine <- m_nine / n_ties
+cat("Probability[Observing a Tie given (d=9)] = ", p_nine, "\n")
+
+p_nine_M <- p_nine * p_nine
+p_nine_A <- 2 * p_nine * (1 - p_nine)
+p_nine_N <- (1 - p_nine) * (1 - p_nine)
+
+knitr::kable(
+  data.frame(
+    Dyad        = c("Mutual", "Asymmetric", "Null"),
+    Observed    = c(p_M, p_A, p_N),
+    `d=9`       = c(p_nine_M, p_nine_A, p_nine_N),
+    Factor      = c(p_M, p_A, p_N) / c(p_nine_M, p_nine_A, p_nine_N)
+  ),
+  check.names = FALSE,
+  digits = 4,
+  caption = "Observed vs. d=9 Independence Model"
+)
+```
+
+**Comment about this model:**\
+As we can see this model aligns pretty well the probability of observing a mutual dyad.
+On the other hand are asymmetric and null dyads not closely aligned.
+
+If we think about how many ties there are: $22 \cdot 9 = 198$, we see it is a lot more than the actual number of ties which is $m = 134$.\
+Logically (by assuming tie independence) we would need to pick $d = m/n = 134/22 \approx 6$.\
+
+*Conclusion*: We can match one statistic (in that case mutuality) by tuning a parameter, but the overall dyad distribution still doesn't fit. This means this model isn't adequate either.
+
+## Task 1.6
+*Load the packages `sna` and `network` in R. Import the file `10_W1.csv` as a matrix object. The R function `cug.test` perform a CUG test in R. Run the following commands in R:*
+```{r task-1-6-prelimimary-loading}
+cguRec <- cug.test(A_clean, grecip, cmode = "edges", reps=n_perm)
+cugInd <- cug.test(A_clean, centralization, cmode="edges", FUN.arg=list(FUN=degree, cmode="indegree"), reps=n_perm)
+cugTrans <- cug.test(A_clean, gtrans, cmode = "dyad.census", reps=n_perm)
+```
+
+### Task 1.6.1
+*State the hypotheses and the conditional features of the tests* (*Use the help function `?cug.test` to understand the command lines*)
+
+All three tests share the same structure: we compare an observed network statistic against a distribution of that statistic computed over random graphs that preserve a specific feature of the observed network.
+
+The first test (`cguRec`) measures reciprocity (`grecip`) conditioned on the number of edges (`cmode = "edges"`). Random graphs are generated with the same edge count as the observed network.\
+$H_0$: The observed reciprocity is no more extreme than expected in random networks with the same number of edges.\
+$H_A$: The observed reciprocity is more extreme than expected.
+
+The second test (`cugInd`) measures indegree centralization (`centralization` with `FUN = degree, cmode = "indegree"`), also conditioned on the number of edges.\
+$H_0$: The observed indegree centralization is no more extreme than expected in random networks with the same number of edges.\
+$H_A$: The observed indegree centralization is more extreme than expected.
+
+The third test (`cugTrans`) measures transitivity (`gtrans`) conditioned on the dyad census (`cmode = "dyad.census"`). Random graphs are generated preserving the exact counts $M$, $A$, $N$.\
+$H_0$: The observed transitivity is no more extreme than expected in random networks with the same dyad census.\
+$H_A$: The observed transitivity is more extreme than expected.
+
+### Task 1.6.2
+*Interpret the results*
+
+```{r task-1-6-2-results}
+alpha <- 0.05
+
+cug_summary <- data.frame(
+  Test        = c("Reciprocity", "Indegree Centralization", "Transitivity"),
+  Conditioning = c("edges", "edges", "dyad.census"),
+  `Observed Value` = c(cguRec$obs.stat, cugInd$obs.stat, cugTrans$obs.stat),
+  `Pr(X>=Obs)`     = c(cguRec$pgteobs, cugInd$pgteobs, cugTrans$pgteobs),
+  `Pr(X<=Obs)`     = c(cguRec$plteobs, cugInd$plteobs, cugTrans$plteobs),
+  Decision    = ifelse(
+    pmin(c(cguRec$pgteobs, cugInd$pgteobs, cugTrans$pgteobs),
+         c(cguRec$plteobs, cugInd$plteobs, cugTrans$plteobs)) < alpha,
+    "Reject H0", "Fail to reject H0"
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(cug_summary, digits = 4, caption = "CUG Test Results (alpha = 0.05)")
+```
+
+```{r task-1-6-2-plots, fig.width=10, fig.height=4}
+par(mfrow = c(1, 3))
+plot(cguRec, main = "CUG: Reciprocity\n(conditioned on edges)")
+plot(cugInd, main = "CUG: Indegree Centralization\n(conditioned on edges)")
+plot(cugTrans, main = "CUG: Transitivity\n(conditioned on dyad census)")
+```
+
+As shown in the table, the reciprocity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. The observed reciprocity (0.77) is significantly higher than what random networks with the same density produce. This is consistent with our findings in Tasks 1.2–1.4 where mutual ties were roughly twice as frequent as expected under independence.
+
+For indegree centralization we get $Pr(X \geq Obs) \approx 0.77$, so we **fail to reject $H_0$**. The observed centralization (0.20) falls well within the range of random networks with the same edge count. The distribution of popularity across students is not significantly more unequal than what we would expect by chance.
+
+The transitivity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. Even after controlling for the dyad census, the observed transitivity (0.54) is significantly higher than expected. This means the network exhibits "friend of a friend" clustering beyond what reciprocity alone would produce — if $i \to j$ and $j \to k$, then $i \to k$ is more likely than expected.
+
+## Reproducibility Footer
+
+```{r session-info}
+cat("Seed used:", 161, "\n")
+cat("Permutations used:", n_perm, "\n")
+sessionInfo()
+```
