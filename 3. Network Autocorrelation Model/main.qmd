@@ -70,7 +70,9 @@ For classroom 10, we get a negative autocorrelation term with $p$-value $0.028$.
 
 **TODO (discuss with others)**
 
-QAP and NAM address different questions. The QAP task examines whether different variables have an effect on the probability of a tie existing, while NAM addresses the question wether different variables (including the network structure itself) have an effect on the ending literacy score.
+QAP and NAM address different questions. The QAP task examines how the number of friendship nominations correlates with the other variables, while NAM addresses the question wether the ending literacy score correlates with the other variables (especially the network structure itself: "Do high literacy people have high literacy friends?").
+
+So comparing the results of the QAP task with the NAM task does not really make sense.
 
 <!-- Comparing these results with the results from QAP, we see that QAP also revealed that female students perform better, and that there is a correlation between HISEI and literacy_end scores. -->
 
@@ -100,4 +102,4 @@ In the results from subtask 5 most of the autocorrelation terms are negative, bu
 
 The HISEI and gender correlations also don't generalize to the other classroom. With the exception of classroom 1, the $p$-values of HISEI score and gender coefficients all lie above 0.05, so they are not statistically significant.
 
-In classroom 1 we get a positive correlation between HISEI and literacy scores.
+In classroom 1 we get a positive correlation between HISEI and literacy scores with $p$-value $<0.01$.

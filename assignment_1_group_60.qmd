@@ -298,9 +298,9 @@ The transitivity test yields $Pr(X \geq Obs) \approx 0$, so we **reject** $H_0$.
 
 ```{r}
 #| include: false
-source("01_DataPrep.R")
-source("2. MR-QAP regression\02_Covariates.R")
-source("2. MR-QAP regression\03_MRQAP.R")
+source("2. MR-QAP regression/01_DataPrep.R")
+source("2. MR-QAP regression/02_Covariates.R")
+source("2. MR-QAP regression/03_MRQAP.R")
 ```
 
 ## 2.1 Classroom 10 Basic QAP
@@ -365,9 +365,115 @@ Analyzing the numbers for all the rooms results in the following conclusions and
 
 As for the generalizability: The w1 stability and same Gender homophily seem to be highly generalizable, matching results from studies done on this topic. The literacy is universally irrelevant. HISEI is context-specific and results in mixed directions, so one should take it with a grain of salt.
 
-**Note on reproducibility**: MR-QAP uses 5000 random permutations (\`reps=5000\`). Minor p-value/β fluctuations (±0.01) expected between runs due to randomization, but patterns are robust
 
-## Reproducibility Footer
+# Idea
+
+The Network Autocorrelation Model assumes the data is distributed like:
+$$y = X\beta + \rho W y + \epsilon,$$
+where in our case $y$ is the ending literacy score, $X$ is the other attributes, $W$ is the wave 2 adjacency matrix and $\epsilon$ is distributed normally.
+
+So we just need to statistically estimate $\beta, \rho$.
+
+# Importing and cleaning Data
+
+We need to clean the data by removing all students with missing data. That can be missing friendship data, missing HISEI, missing gender, missing literacy, ...
+
+The important code-block for this cleaning is the following. We get all student ids and intersect them to get only the ones with complete data.
+
+```{r}
+#| eval: false
+ok_ids1 <- rownames(w2net)[complete.cases(w2net)]
+ok_ids2 <- rownames(attr)[complete.cases(attr)]
+
+ok_ids <- intersect(ok_ids1, ok_ids2)
+```
+
+The remaining code of `import_and_clean.R` will be uploaded along the pdf.
+
+```{r}
+#| message: false
+source("3. Network Autocorrelation Model/import_and_clean.R")
+w2netClean<-getNet("10")
+attrClean<-getAttr("10")
+```
+
+# Subtask 1
+
+Subtask 1 requires just Network Autocorrelation, without exogenous variables, so the model simplifies to
+$$y = \mathbf{1} \beta + \rho W y + \epsilon.$$
+for some constants $\beta, \rho$ to be estimated.
+
+So we fit a NAM model:
+```{r}
+X <- model.matrix(literacy_end~1, data=attrClean)
+model <- lnam(y=attrClean$literacy_end, x=X, W1=w2netClean)
+print(summary(model))
+```
+
+# Subtask 2
+
+Subtask 2 adds HISEI and gender, giving the model described in **Idea**.
+
+Gender is a simple binary variable, encoding it as $0$ for male and $1$ for female should be sufficient:
+
+```{r}
+attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")
+```
+
+Now we can basically reuse the code from **Subtask 1**, just adding gender, HISEI and a constant factor for the intersect in the $X$ matrix.
+
+```{r}
+X <- model.matrix(literacy_end~ gender + HISEI, data = attrClean)
+model <- lnam(attrClean$literacy_end, X, w2netClean)
+print(summary(model))
+```
+
+# Subtask 3
+
+For classroom 10, we get a negative autocorrelation term with $p$-value $0.028$. So it's significant. This doesn't support the positive autocorrelation hypothesis, it actually contradicts it. This suggests that students are likely connected with other students which have differing literacy scores. Further, being female and having a high HISEI score both correlate positively with the literacy_end score.
+
+<!-- The outcome actually suggests that the autocorrelation is negative. Further, female students outperform male students, and there is a strong correlation between the HISEI score and the literacy_end score. -->
+
+# Subtask 4
+
+**TODO (discuss with others)**
+
+QAP and NAM address different questions. The QAP task examines how the number of friendship nominations correlates with the other variables, while NAM addresses the question wether the ending literacy score correlates with the other variables (especially the network structure itself: "Do high literacy people have high literacy friends?").
+
+So comparing the results of the QAP task with the NAM task does not really make sense.
+
+<!-- Comparing these results with the results from QAP, we see that QAP also revealed that female students perform better, and that there is a correlation between HISEI and literacy_end scores. -->
+
+# Subtask 5
+
+Combining all the above code and running it in a loop over all classrooms, we get:
+
+```{r}
+for (classroom in c("01", "02", "03", "04", "05", "09", "10", "12")) {
+    w2netClean<-getNet(classroom)
+    attrClean<-getAttr(classroom)
+
+    attrClean["gender"] <- lapply(attrClean["gender"], \(x) x=="female")    
+
+    X <- model.matrix(literacy_end~ gender + HISEI, data = attrClean)
+    model <- lnam(attrClean$literacy_end, X, w2netClean)
+    cat(paste("Classroom number:", classroom, sep=" "))
+    cat("\n")
+    print(summary(model))
+    cat("============================================\n\n\n")
+}
+```
+
+# Subtask 6
+
+In the results from subtask 5 most of the autocorrelation terms are negative, but all with very large $p$-value. So the result is not statistically significant. Only classroom 10 has evidence for such a negative autocorrelation. These results are not generalizable. So there is no evidence to support a positive autocorrelation hypothesis.
+
+The HISEI and gender correlations also don't generalize to the other classroom. With the exception of classroom 1, the $p$-values of HISEI score and gender coefficients all lie above 0.05, so they are not statistically significant.
+
+In classroom 1 we get a positive correlation between HISEI and literacy scores with $p$-value $<0.01$.
+
+
+# Reproducibility Footer
 
 ```{r session-info}
 cat("Seed used:", 161, "\n")
