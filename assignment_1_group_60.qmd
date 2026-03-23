@@ -100,7 +100,8 @@ write.csv2(
 ```
 
 ## Task 1.1
-*Compute probability $p$ of observing a tie if you choose one possible dyad at random*
+
+*Compute probability* $p$ of observing a tie if you choose one possible dyad at random
 
 ```{r task-1-1-tie-prob}
 nodes = n
@@ -114,7 +115,8 @@ cat("Probability[Observing a Tie] = ", p, "\n")
 ```
 
 ## Task 1.2
-*Compute the probabilities $p_M, p_A, p_N$ of observing a mutual, asymmetric and null dyad*
+
+*Compute the probabilities* $p_M, p_A, p_N$ of observing a mutual, asymmetric and null dyad
 
 ```{r task-1-2-dyad-probs}
 n_mutual     <- M
@@ -137,7 +139,8 @@ knitr::kable(
 ```
 
 ## Task 1.3
-*What would be the value of the probabilities in (2) if we assume tie independence and that the probability of observing a tie takes the value $p$ computed in (1)?*
+
+*What would be the value of the probabilities in (2) if we assume tie independence and that the probability of observing a tie takes the value* $p$ computed in (1)?
 
 ```{r task-1-3-tie-prob-uniform}
 # T : Tie
@@ -167,6 +170,7 @@ knitr::kable(
 ```
 
 ## Task 1.4
+
 *Given the values obtained in (2) and (3), would it be reasonable to assume tie independence when performing further analysis on the observed network? Justify*
 
 No, it would not be reasonable to assume tie independence.
@@ -187,12 +191,11 @@ knitr::kable(
 )
 ```
 
-As shown in the table we observe roughly twice as many mutual ties as we would by assuming independence.
-On the other hand asymmetric ties would be overrepresented by the assumption of independence.
+As shown in the table we observe roughly twice as many mutual ties as we would by assuming independence. On the other hand asymmetric ties would be overrepresented by the assumption of independence.
 
 ## Task 1.5
-*Consider a different model that assumes all nodes have an outdegree of nine (d=9).*
-*Compute the probability of a mutual tie assuming tie independence. Compare this probability with the probabilities computed in (2) and (3). Would it be reasonable to assume this model?*
+
+*Consider a different model that assumes all nodes have an outdegree of nine (d=9).* *Compute the probability of a mutual tie assuming tie independence. Compare this probability with the probabilities computed in (2) and (3). Would it be reasonable to assume this model?*
 
 ```{r task-1-5-different-model}
 m_nine <- n * 9
@@ -217,8 +220,7 @@ knitr::kable(
 ```
 
 **Comment about this model:**\
-As we can see this model aligns pretty well the probability of observing a mutual dyad.
-On the other hand are asymmetric and null dyads not closely aligned.
+As we can see this model aligns pretty well the probability of observing a mutual dyad. On the other hand are asymmetric and null dyads not closely aligned.
 
 If we think about how many ties there are: $22 \cdot 9 = 198$, we see it is a lot more than the actual number of ties which is $m = 134$.\
 Logically (by assuming tie independence) we would need to pick $d = m/n = 134/22 \approx 6$.\
@@ -226,7 +228,9 @@ Logically (by assuming tie independence) we would need to pick $d = m/n = 134/22
 *Conclusion*: We can match one statistic (in that case mutuality) by tuning a parameter, but the overall dyad distribution still doesn't fit. This means this model isn't adequate either.
 
 ## Task 1.6
+
 *Load the packages `sna` and `network` in R. Import the file `10_W1.csv` as a matrix object. The R function `cug.test` perform a CUG test in R. Run the following commands in R:*
+
 ```{r task-1-6-prelimimary-loading}
 cguRec <- cug.test(A_clean, grecip, cmode = "edges", reps=n_perm)
 cugInd <- cug.test(A_clean, centralization, cmode="edges", FUN.arg=list(FUN=degree, cmode="indegree"), reps=n_perm)
@@ -234,6 +238,7 @@ cugTrans <- cug.test(A_clean, gtrans, cmode = "dyad.census", reps=n_perm)
 ```
 
 ### Task 1.6.1
+
 *State the hypotheses and the conditional features of the tests* (*Use the help function `?cug.test` to understand the command lines*)
 
 All three tests share the same structure: we compare an observed network statistic against a distribution of that statistic computed over random graphs that preserve a specific feature of the observed network.
@@ -251,6 +256,7 @@ $H_0$: The observed transitivity is no more extreme than expected in random netw
 $H_A$: The observed transitivity is more extreme than expected.
 
 ### Task 1.6.2
+
 *Interpret the results*
 
 ```{r task-1-6-2-results}
@@ -280,11 +286,86 @@ plot(cugInd, main = "CUG: Indegree Centralization\n(conditioned on edges)")
 plot(cugTrans, main = "CUG: Transitivity\n(conditioned on dyad census)")
 ```
 
-As shown in the table, the reciprocity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. The observed reciprocity (0.77) is significantly higher than what random networks with the same density produce. This is consistent with our findings in Tasks 1.2–1.4 where mutual ties were roughly twice as frequent as expected under independence.
+As shown in the table, the reciprocity test yields $Pr(X \geq Obs) \approx 0$, so we **reject** $H_0$. The observed reciprocity (0.77) is significantly higher than what random networks with the same density produce. This is consistent with our findings in Tasks 1.2–1.4 where mutual ties were roughly twice as frequent as expected under independence.
 
-For indegree centralization we get $Pr(X \geq Obs) \approx 0.77$, so we **fail to reject $H_0$**. The observed centralization (0.20) falls well within the range of random networks with the same edge count. The distribution of popularity across students is not significantly more unequal than what we would expect by chance.
+For indegree centralization we get $Pr(X \geq Obs) \approx 0.77$, so we **fail to reject** $H_0$. The observed centralization (0.20) falls well within the range of random networks with the same edge count. The distribution of popularity across students is not significantly more unequal than what we would expect by chance.
 
-The transitivity test yields $Pr(X \geq Obs) \approx 0$, so we **reject $H_0$**. Even after controlling for the dyad census, the observed transitivity (0.54) is significantly higher than expected. This means the network exhibits "friend of a friend" clustering beyond what reciprocity alone would produce — if $i \to j$ and $j \to k$, then $i \to k$ is more likely than expected.
+The transitivity test yields $Pr(X \geq Obs) \approx 0$, so we **reject** $H_0$. Even after controlling for the dyad census, the observed transitivity (0.54) is significantly higher than expected. This means the network exhibits "friend of a friend" clustering beyond what reciprocity alone would produce — if $i \to j$ and $j \to k$, then $i \to k$ is more likely than expected.
+
+# Task 2: MR-QAP Regression
+
+## Code used to solve the tasks
+
+```{r}
+#| include: false
+source("01_DataPrep.R")
+source("2. MR-QAP regression\02_Covariates.R")
+source("2. MR-QAP regression\03_MRQAP.R")
+```
+
+## 2.1 Classroom 10 Basic QAP
+
+After cleaning the data and formatting it in a usable way this is the code that returns the result
+
+```{r}
+print(summary(nlTask1))
+```
+
+If one prints out the summary, we get that the friendship nominations in wave 2 are highly associated with friendship nominations in wave 1. The chances of a friendship persisting to the second wave if it was already established by the time of the first wave as compared to it not existing in the first wave is **roughly 15 fold**. Having a \*\*\*p-value (Pr(\>=b)) below 0.001 makes this result **highly significant**.
+
+```         
+Coefficients:
+            Estimate   Exp(b)     Pr(<=b) Pr(>=b) Pr(>=|b|)
+(intercept) -0.1663907  0.8467153 0.3778  0.6222  0.3814   
+x1           2.7398508 15.4846743 1.0000  0.0000  0.0000   
+```
+
+## 2.2 Co-variate Model Specification
+
+Variables x2-x4 represent the following:
+
+**x2: literacyRec**: `matrix(attrFinal[, "literacy_end"], nNodes, nNodes, byrow=FALSE)`\
+With the hypothesis, that high literacy students (column j) should get fewer nominations, so a negative effect.
+
+**x3: sameGender**: `outer(attrFinal[, "gender"], attrFinal[, "gender"], "==") * 1`\
+With the hypothesis, that same gender pairs (i,j) are more likely friends, so an expect positive effect.
+
+**x4: hiseiSend**: `matrix(attrFinal[, "HISEI"], nNodes, nNodes, byrow=TRUE)`\
+With the hypothesis, that High HISEI senders (row i) are to send more nominations, so an expect positive effect.
+
+Comparing the different waves and the attribute table and removing any student that does not have complete data in all of then leaves us with the cleaned and relevant data for the MR-QAP. With that, one can build the matrices.
+
+## 2.3+2.4 Full Model Results
+
+This code outputs the results for all the 8 classrooms for which data was provided
+
+```{r}
+print(allResults)
+```
+
+For the sub-task 2.3 one can look at the 10.x rows. As seen before, the significance of friendships from wave 1 carrying over to wave 2 remains very high. We can see a small drop off in the beta from \~2.74 to \~2.4 which can be due to the controlling for literacy/gender/HISEI. As for the hypothesis:
+
+-   The hypothesis that students with high ending literacy scores are less likely to receive friendship nominations **can not be supported**. While we can see a negligibly small multiplier, the p-value of 0.8646 makes this **statistically insignificant**.
+
+-   The hypothesis that a friendship nomination is more likely between a pair or students of the same gender **can be supported**. For students with the same gender, the probability of forming a friendship (same gender dyads), has **almost 7x higher odds**. This result is **statistically highly significant** as indicated by the \*\*\*p-value\<0.001.
+
+-   The hypothesis, that students with high HISEI send more friendship nominations **can be supported** for the 10th class. We have roughly **4.7% increase** of sending nomination to any receiver for each 1 unit increase in the sender's HISEI. This result is **statistically significant** with a \*\*p-value\<0.01.
+
+## 2.5 Cross-Classroom Patterns
+
+Analyzing the numbers for all the rooms results in the following conclusions and overarching patterns:
+
+-   Firstly, the stability of friendships seems to remain universally strong and very significant. With 7/8 \*\*\*p-values\<0.001, last one \~0.0016. The odds ratios range from a low of \~3.5x to a high of over 23x. The takeaway is that friendships persist regardless of class characteristics.
+
+-   Secondly, the gender homophily, so same-gendered friendships, is pretty robust. 4/8 classes show a very high significance of \*\*\*p-value\<0.001 while one falls in the category of \*\*p-value\<0.01 and one in the category of \*p-value\<0.05. Only two classes can be considered exceptions, class 4 and class 12. Both have a p-value far greater then 0.1, making them statistically insignificant. As for the significant ones, they range from a low of \~2.2x to a high of \~7.75x times likelihood to form a friendship when students have the same gender.
+
+-   Thirdly, if we do not only look at the 10th class, but rather at all 8 for which we have data, we see a slight change in the conclusion one might draw regarding the HISEI hypothesis. Only class 1, 9, 10 and 12 show any significance in the results. They range from a \*\*p-value of 0.0018 up to a \*p-value of 0.039. Thus, having half the classes give insignificant results is noteworthy and might change ones takeaway from the exception that is class 10. Furthermore, we can see that the multiplier value between the four significant classes points us in both directions, two show an increase, the other two a decrease in the likelihood of sending friendship nominations, ranging from \~0.96x to \~1.046x. All in all, the result we got from only looking at class 10 regarding the hypothesis is questionable at best. Generalizing it would be a mistake.
+
+-   The final variable we looked at was the ending literacy scores. There is no class here that showed any statistical significance, giving us no support for the hypothesis. And even if there was any, the effect of the literacy scores is negligible, never changing the outcome more then 2%. Thus we can say that literacy does not predict popularity.
+
+As for the generalizability: The w1 stability and same Gender homophily seem to be highly generalizable, matching results from studies done on this topic. The literacy is universally irrelevant. HISEI is context-specific and results in mixed directions, so one should take it with a grain of salt.
+
+**Note on reproducibility**: MR-QAP uses 5000 random permutations (\`reps=5000\`). Minor p-value/β fluctuations (±0.01) expected between runs due to randomization, but patterns are robust
 
 ## Reproducibility Footer
 
