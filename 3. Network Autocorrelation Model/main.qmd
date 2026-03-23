@@ -87,10 +87,17 @@ for (classroom in c("01", "02", "03", "04", "05", "09", "10", "12")) {
 
     X <- model.matrix(literacy_end~ gender + HISEI, data = attrClean)
     model <- lnam(attrClean$literacy_end, X, w2netClean)
+    cat(paste("Classroom number:", classroom, sep=" "))
+    cat("\n")
     print(summary(model))
+    cat("============================================\n\n\n")
 }
 ```
 
 # Subtask 6
 
 In the results from subtask 5 most of the autocorrelation terms are negative, but all with very large $p$-value. So the result is not statistically significant. Only classroom 10 has evidence for such a negative autocorrelation. These results are not generalizable. So there is no evidence to support a positive autocorrelation hypothesis.
+
+The HISEI and gender correlations also don't generalize to the other classroom. With the exception of classroom 1, the $p$-values of HISEI score and gender coefficients all lie above 0.05, so they are not statistically significant.
+
+In classroom 1 we get a positive correlation between HISEI and literacy scores.
