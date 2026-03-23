@@ -6,7 +6,7 @@ if (!require(sna)) install.packages("sna")
 if (!require(here)) install.packages("here")
 here::i_am("main.R")
 
-files <- list.files(here("../Data"), pattern="\\.csv$", full.names=TRUE) # import the files
+files <- list.files("Data", pattern="\\.csv$", full.names=TRUE) # import the files
 
 dataList <- lapply(files, function(f) {  read.csv(f, sep=";", header=TRUE, row.names=1)}) # read the CSV files with lambda expression
 names(dataList) <- tools::file_path_sans_ext(basename(files))   # cut of the csv part

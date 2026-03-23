@@ -1,5 +1,6 @@
 ---
 title: "Assignment 1"
+author: "Simon Ganter, Josia John, Tudor Luchiean, Leif Maurer"
 format: html
 execute:
   cache: false 
@@ -366,7 +367,9 @@ Analyzing the numbers for all the rooms results in the following conclusions and
 As for the generalizability: The w1 stability and same Gender homophily seem to be highly generalizable, matching results from studies done on this topic. The literacy is universally irrelevant. HISEI is context-specific and results in mixed directions, so one should take it with a grain of salt.
 
 
-# Idea
+# Task 3: Network Autocorrelation Model
+
+## Idea
 
 The Network Autocorrelation Model assumes the data is distributed like:
 $$y = X\beta + \rho W y + \epsilon,$$
@@ -374,7 +377,7 @@ where in our case $y$ is the ending literacy score, $X$ is the other attributes,
 
 So we just need to statistically estimate $\beta, \rho$.
 
-# Importing and cleaning Data
+## Importing and cleaning Data
 
 We need to clean the data by removing all students with missing data. That can be missing friendship data, missing HISEI, missing gender, missing literacy, ...
 
@@ -397,7 +400,7 @@ w2netClean<-getNet("10")
 attrClean<-getAttr("10")
 ```
 
-# Subtask 1
+## Subtask 1
 
 Subtask 1 requires just Network Autocorrelation, without exogenous variables, so the model simplifies to
 $$y = \mathbf{1} \beta + \rho W y + \epsilon.$$
@@ -410,7 +413,7 @@ model <- lnam(y=attrClean$literacy_end, x=X, W1=w2netClean)
 print(summary(model))
 ```
 
-# Subtask 2
+## Subtask 2
 
 Subtask 2 adds HISEI and gender, giving the model described in **Idea**.
 
@@ -428,15 +431,13 @@ model <- lnam(attrClean$literacy_end, X, w2netClean)
 print(summary(model))
 ```
 
-# Subtask 3
+## Subtask 3
 
 For classroom 10, we get a negative autocorrelation term with $p$-value $0.028$. So it's significant. This doesn't support the positive autocorrelation hypothesis, it actually contradicts it. This suggests that students are likely connected with other students which have differing literacy scores. Further, being female and having a high HISEI score both correlate positively with the literacy_end score.
 
 <!-- The outcome actually suggests that the autocorrelation is negative. Further, female students outperform male students, and there is a strong correlation between the HISEI score and the literacy_end score. -->
 
-# Subtask 4
-
-**TODO (discuss with others)**
+## Subtask 4
 
 QAP and NAM address different questions. The QAP task examines how the number of friendship nominations correlates with the other variables, while NAM addresses the question wether the ending literacy score correlates with the other variables (especially the network structure itself: "Do high literacy people have high literacy friends?").
 
@@ -444,7 +445,7 @@ So comparing the results of the QAP task with the NAM task does not really make 
 
 <!-- Comparing these results with the results from QAP, we see that QAP also revealed that female students perform better, and that there is a correlation between HISEI and literacy_end scores. -->
 
-# Subtask 5
+## Subtask 5
 
 Combining all the above code and running it in a loop over all classrooms, we get:
 
@@ -464,7 +465,7 @@ for (classroom in c("01", "02", "03", "04", "05", "09", "10", "12")) {
 }
 ```
 
-# Subtask 6
+## Subtask 6
 
 In the results from subtask 5 most of the autocorrelation terms are negative, but all with very large $p$-value. So the result is not statistically significant. Only classroom 10 has evidence for such a negative autocorrelation. These results are not generalizable. So there is no evidence to support a positive autocorrelation hypothesis.
 
