@@ -1,0 +1,96 @@
+---
+title: "Assignment 1"
+author: "Simon Ganter, Josia John, Tudor Luchiean, Leif Maurer"
+format: html
+execute:
+  cache: false 
+---
+
+\newpage
+
+# Task 1: Geometrically Weighted Terms in ERGMs
+
+## (1) Change statistic of gwodegree
+
+### i.
+
+Let $x'$ be the network obtained by adding a directed edge to a sender node that currently has out-degree $k\ge 1$ in $x$. Now:
+
+$$
+\begin{aligned}
+s_\text{GWD}(x,\alpha) &= e^\alpha \cdot \sum_{i=1}^{n}\left(1 - \left(1-e^{-\alpha}\right)^i\right) \cdot D_i^\text{out}(x)\\
+\\
+s_\text{GWD}(x',\alpha) &= e^\alpha \cdot \left(\sum_{i=1}^{n}\left(1 - \left(1-e^{-\alpha}\right)^i\right) \cdot D_i^\text{out}(x) - \left(1 - \left(1-e^{-\alpha}\right)^k\right) + \left(1 - \left(1-e^{-\alpha}\right)^{k+1}\right)\right)\\
+\\
+\delta_\text{GWD}(k,\alpha) &= s_\text{GWD}(x',\alpha) - s_\text{GWD}(x,\alpha)\\
+&= e^\alpha \cdot \left(- \left(1 - \left(1-e^{-\alpha}\right)^k\right) + \left(1 - \left(1-e^{-\alpha}\right)^{k+1}\right)\right)\\
+&= e^\alpha \cdot \left(\left(1-e^{-\alpha}\right)^k - \left(1-e^{-\alpha}\right)^{k+1}\right)\\
+&= e^a \cdot \left(1-e^{-\alpha}\right)^k \cdot \left(1 - \left(1-e^{-\alpha}\right)\right)\\
+&= e^a \cdot \left(1-e^{-\alpha}\right)^k \cdot e^{-\alpha}\\
+&= \left(1-e^{-\alpha}\right)^k\\
+\end{aligned}
+$$
+
+For $k=0$ we get $\delta_\text{GWD}(0,\alpha) = e^\alpha \cdot \left(1 - \left(1-e^{-\alpha}\right)\right) = e^\alpha\cdot e^{-\alpha} = 1$. Note that this agrees with plugging in $k=0$ in the result above.
+
+### ii.
+
+```{r}
+delta <- function(k, alpha) {
+    return((1-exp(-alpha))^k)
+}
+
+
+f1 <- as.matrix(read.csv('../data/f1.csv'))
+outdegrees <- rowSums(f1)
+min <- min(outdegrees)
+max <- max(outdegrees)
+
+makeplot <- function(alphas) {
+    x <- min:max
+    ys <- lapply(alphas, function(a) delta(x, a))
+    cols <- rainbow(length(alphas))
+
+    plot(
+    x, ys[[1]],
+    type = "o",
+    col = cols[1],
+    ylim = range(unlist(ys)),
+    xlab = "x",
+    ylab = "delta(x, alpha)"
+    )
+
+    for (i in seq_along(alphas)) {
+    lines(x, ys[[i]], type = "o", col = cols[i])
+    }
+
+    legend(
+    "topright",
+        legend = paste("alpha =", round(alphas, 3)),
+        col = cols,
+        lty = 1,
+        pch = 1,
+        cex = 0.8
+    )
+}
+
+makeplot(c(-1))
+makeplot(c(-0.5))
+makeplot(c(0, 0.1, 0.2, 0.3, 0.5, log(2), 1, 2, 3))
+```
+
+### iii.
+
+The first observation is that $\alpha<0$ usually doesn't make sense because it distinguishes between odd and even outdegree very strongly.
+
+Next, if $\alpha$ is close to zero, then only the first edge contributes significantly to the `gwodegree` statistic. 
+
+[TODO]
+
+### iv.
+
+Large. [TODO]
+
+## (2) 
+
+## (3)
