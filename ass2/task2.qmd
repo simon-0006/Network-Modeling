@@ -1,0 +1,202 @@
+---
+title: "Task 2"
+format: pdf
+editor: visual
+
+execute:
+  warning: false
+  message: false
+  
+header-includes:
+  - \usepackage{float}
+---
+
+# Creating the network
+
+```{r}
+library(statnet)
+
+# Loading data
+mat <- as.matrix(read.csv("Glasgow/f1.csv", header=FALSE))
+net <- network(mat)
+
+# adding attributes to the network
+dem <- read.csv("Glasgow/demographic.csv", header=TRUE)
+alc <- read.csv("Glasgow/alcohol.csv", header=TRUE)
+set.vertex.attribute(net, "gender", dem$gender)
+set.vertex.attribute(net, "age", dem$age)
+set.vertex.attribute(net, "alc", alc$Wave.1)
+```
+
+# (1)
+
+We first fit the model with the specified parameters:
+
+```{r}
+library(ergm)
+
+fit <- ergm(net ~ edges + nodematch("gender"))
+```
+
+```{r}
+#| results: asis
+#| echo: false
+
+library(texreg)
+
+texreg(
+  list(fit),
+  custom.model.names = c("fit parameters"),
+  single.row = TRUE,
+  label = "Model summary",
+  float.pos = "H"
+)
+```
+
+Let $\theta = (\theta_e, \theta_s)^T$ and $s = (s_e, s_g)^T$ be the weights and statistics for the edges and gender parameter respectively.
+
+To compute the conditional probability of observing a tie between two students with the same gender we assume that student $i$ and $j$ have the same gender and calculate:
+
+\begin{align}
+P_\theta(X_{ij} = 1 | X_{-ij} = x_{-ij}) &= \frac{P(X = x_{ij}^+)}{P(X = x_{ij}^+) + P(X = x_{ij}^-)} \\
+&= \frac{ \exp( \theta^T \cdot s(x_{ij}^+))}
+{\exp( \theta^T \cdot s(x_{ij}^+)) + \exp( \theta^T \cdot s(x_{ij}^-))} \\
+&= \frac{ \exp( \theta^T \cdot (s(x_{ij}^+) - s(x_{ij}^-)) \ )}
+{\exp( \theta^T \cdot (s(x_{ij}^+) - s(x_{ij}^-)) \ ) + 1} \\
+\end{align}
+
+But since $s_e(x_{ij}^+) - s_e(x_{ij}^-) = 1 = s_g(x_{ij}^+) - s_g(x_{ij}^-)$ we get the probability for an edge between students of the same gender:
+
+$$
+\frac{ \exp( \theta_{e} + \theta_g)}{\exp( \theta_{e} + \theta_g) + 1}
+$$
+
+Using the fitted weights we hence calculate the final result:
+
+```{r}
+
+theta <- coef(fit)
+p_same <- plogis(theta["edges"] + theta["nodematch.gender"])
+p_same
+```
+
+The edge parameter is negative and statistically significant at the $p < 0.001$ level. This indicates that friendship ties are generally unlikely in the Glasgow Wave 1 network.
+
+The gender homophily parameter is positive and statistically significant at the $p < 0.001$ level. This means that, compared to students of different gender, students of the same gender have higher conditional log-odds of a friendship tie. Therefore, the model provides strong evidence for gender homophily.
+
+With the estimated conditional probability of a same-gender friendship tie of around $4.7\%$, we can say same-gender ties are substantially more likely than different-gender ties, although the absolute probability remains low because the network is sparse.
+
+# (2)
+
+To test the hypotheses simultaneously, we estimate the following ERGM:
+
+```{r, eval=FALSE}
+fit2 <- ergm(net ~ edges + 
+                   nodematch("gender") + 
+                   mutual +
+                   triangles +
+                   nodeifactor("gender") +
+                   nodeofactor("gender") +
+                   nodeicov("alc") +
+                   nodeocov("alc") +
+                   absdiff("alc"))
+```
+
+This model includes `edges` as a baseline density term and `nodematch("gender")` to control for gender homophily. The `mutual` term tests reciprocity, while `triangles` tests transitivity. The terms `nodeofactor("gender")` and `nodeifactor("gender")` test whether gender affects sending and receiving friendship nominations. Similarly, `nodeocov("alc")` and `nodeicov("alc")` test whether alcohol consumption affects activity and popularity. Finally, `absdiff("alc")` tests alcohol homophily: a negative coefficient would indicate that students with more similar alcohol consumption are more likely to be friends.
+
+# (3)
+
+This model did not converge. A likely reason is the raw `triangles` term, which can cause degeneracy or near-degeneracy in ERGMs by putting too much probability mass on extreme networks. This you can see in the output suggesting that sampeled networks have more than 20 times the edges of our target network. We therefore replace `triangles` with the geometrically weighted edgewise shared partners term `gwesp`, which captures transitive closure more stably.
+We chose a low fixed decay parameter of 0.1 because it gave stable convergence while still capturing transitive closure in the sparse network.
+
+We retained this specification as the final model:
+
+```{r}
+set.seed(123)
+fit2 <- ergm(net ~ edges + 
+               nodematch("gender") + 
+               mutual +
+               gwesp(0.1, fixed = TRUE) +
+               nodeifactor("gender") +
+               nodeofactor("gender") +
+               nodeicov("alc") +
+               nodeocov("alc") +
+               absdiff("alc")
+)
+```
+
+We inspected the MCMC diagnostics:
+
+```{r}
+#| fig-width: 12
+#| fig-height: 10
+mcmc.diagnostics(fit2)
+```
+
+The MCMC diagnostics suggest that the model has reached acceptable, but not perfect, convergence. The trace plots fluctuate around zero without a clear upward or downward trend, indicating that the chain is not drifting systematically away from the observed network statistics. The density plots are roughly centred around zero. The Geweke burn-in diagnostic gives non-problematic p-values for all statistics and for the joint test, suggesting that the chain is approximately stationary after burn in. However, the tests comparing simulated and observed statistics are not entirely satisfactory: the `nodeifactor.gender.2` and `nodeofactor.gender.2` statistics differ significantly from their observed values, and the Omni test is significant. In addition, the autocorrelation values remain relatively high even at large lags, especially for the main structural statistics. This indicates slow mixing and dependence between successive sampled networks. Therefore, the model can be treated as sufficiently converged for interpretation, but the convergence diagnostics are not ideal. A possible improvement would be to increase the thinning interval and possibly the burn-in length in `control.ergm`.
+
+# (4)
+
+To assess the goodness of fit of the fitted ERGM, we compare the observed network to networks simulated from the model using four auxiliary statistics: indegree, outdegree, edgewise shared partners, and geodesic distance. For a meaningful result it is important the model is not fitted to these evaluation statistics directly. The following code was used:
+
+```{r}
+g <- gof(fit2, GOF = ~ idegree + odegree + espartners + distance)
+ergm:::plot.gof(g)
+```
+
+The grey boxplots show the distribution of simulated statistics, while the black line shows the observed network. A good fit means that the black line lies mostly inside the simulated distributions.
+
+The first plot shows the model statistics. The observed values are generally close to the simulated distributions. Only gender related statistics seem to not be captuered as well by the model. The outdegree plot shows larger deviations. The observed network has fewer nodes with outdegree 0 and 1, and more nodes with medium outdegree around 2 to 6, than the model typically simulates. The indegree distribution is captured somewhat better, although the model still underestimates nodes with indegree 2 and slightly overestimates nodes with indegree 0 and 1. The edgewise shared partners plot fits reasonably well overall, especially for low to medium numbers of shared partners, suggesting that the `gwesp` term captures transitive closure fairly well. The geodesic distance plot shows the clearest weakness. The model underestimates distances 3 to 5 and strongly overestimates non-reachable dyads. This suggests that simulated networks are too disconnected compared to the observed network.
+
+Overall, the model captures some important local structures, but the main problems are the degree distributions and the geodesic distances, especially the overproduction of disconnected dyads. Therefore, the model gives a reasonable but incomplete representation of the observed network structure.
+
+# (5)
+
+```{r}
+#| results: asis
+#| echo: false
+
+library(texreg)
+
+texreg(
+  list(fit2),
+  custom.model.names = c("Final ERGM"),
+  single.row = TRUE,
+  caption = "Final ERGM parameter estimates",
+  float.pos = "H"
+)
+```
+
+The final ERGM results are shown in Table 2. The edges parameter is negative and statistically significant at the $p<0.001$ level. The corresponding odds ratio is $\exp(-5.61)\approx 0.004$, showing that the baseline conditional odds of a tie are very low.
+
+The nodematch.gender parameter is positive and statistically significant at the $p<0.001$ level. The odds ratio is $\exp(0.90)\approx 2.46$, meaning that same-gender pairs have about 2.5 times higher conditional odds of a friendship tie than mixed-gender pairs. Thus, the model provides evidence for gender homophily.
+
+Hypothesis (i) concerns reciprocity. The mutual parameter is positive and statistically significant at the $p<0.001$ level. The odds ratio is $\exp(3.25)\approx 25.8$, so the conditional odds of a friendship nomination are about 26 times higher if the tie reciprocates an existing nomination. Therefore, the reciprocity hypothesis is strongly supported.
+
+Hypothesis (ii) concerns transitivity. The gwesp parameter is positive and statistically significant at the $p<0.001$ level. The odds ratio is $\exp(1.34)\approx 3.82$, indicating that the conditional odds of a tie increase substantially for the transitive closure effect captured by the GWESP statistic. Therefore, the transitivity hypothesis is supported.
+
+Hypothesis (iii) states that boys have higher social activity than girls. The relevant term is nodeofactor.gender.2. Since gender is coded as $1=\text{boy}$ and $2=\text{girl}$, this coefficient measures whether girls send more friendship nominations than boys. The coefficient is positive, but not statistically significant. Therefore, hypothesis (iii) can not be accepted or rejected.
+
+Hypothesis (iv) states that boys have higher popularity than girls. The relevant term is nodeifactor.gender.2, which measures whether girls receive more nominations than boys. The coefficient is slightly negative and not statistically significant. Therefore, hypothesis (iv) can also not be accepted or rejected.
+
+Hypothesis (v) states that students with higher alcohol consumption have higher social activity. The relevant term is nodeocov.alc, which captures whether students with higher alcohol consumption send more nominations. The coefficient is negative and statistically significant at the $p<0.05$ level. The odds ratio is $\exp(-0.11)\approx 0.90$, meaning that each one-unit increase in alcohol consumption is associated with about a 10% decrease in the conditional odds of sending a friendship nomination. Therefore, hypothesis (v) is not supported; the estimated effect points in the opposite direction.
+
+Hypothesis (vi) states that students with higher alcohol consumption have higher popularity. The relevant term is nodeicov.alc, which captures whether students with higher alcohol consumption receive more nominations. The coefficient is positive and statistically significant at the $p<0.01$ level. The odds ratio is $\exp(0.14)\approx 1.15$, so each one unit increase in alcohol consumption is associated with about a 15% increase in the conditional odds of receiving a friendship nomination. Therefore, hypothesis (vi) is supported.
+
+Hypothesis (vii) concerns alcohol homophily. The relevant term is absdiff.alc. Its coefficient is negative and statistically significant at the $p<0.01$ level. The odds ratio is $\exp(-0.09)\approx 0.91$, meaning that each one unit increase in the absolute alcohol-consumption difference between two students decreases the conditional odds of a tie by about 9%. Therefore, students with more similar alcohol consumption levels are more likely to be friends, so the alcohol homophily hypothesis is supported.
+
+These conclusions should be interpreted with some caution because the GOF diagnostics show remaining misfit in the degree distributions and geodesic distances.
+
+# (6)
+
+The goodness-of-fit results suggest that the model could still be improved, especially with respect to the degree distributions and geodesic distances. One possible improvement would be to add `gwodegree(0.1, fixed = TRUE)` to better capture outdegree heterogeneity. The current model does not fully explain why some students send many friendship nominations while others send very few. This is relevant because friendship nomination is an activity process: some pupils may generally be more socially active, while others nominate only a few friends. A geometrically weighted outdegree term can capture this unequal activity distribution and allows the marginal contribution of additional outgoing ties to level off.
+
+Analogously, the model could include `gwidegree(0.1, fixed = TRUE)` to better capture indegree heterogeneity. This would model differences in popularity: some students receive many nominations, while others receive none or only few. Popularity is usually unequally distributed in school friendship networks. Including a geometrically weighted indegree term could therefore improve the fit of the indegree distribution and may also affect geodesic distances indirectly by changing how simulated networks are connected around popular pupils.
+
+Second, the model could include additional exogenous covariates. For example, age similarity could be added using `absdiff("age")`. Pupils of similar age may spend more time together or be in similar school contexts, making friendship ties more likely. The dataset also contains geographic information through the distance between students’ houses. Adding `edgecov(logdistance)` would test whether students living closer together are more likely to be friends. This is plausible because nearby students have more opportunities to meet outside school.
+
+# (7)
+
+One could ask whether students in the same school class are more likely to be friends. This would be plausible because students in the same class spend more time together, have more repeated interaction opportunities, and are more likely to share daily routines. If class membership were available as a vertex attribute, this could be modeled with a homophily term such as `nodematch("class")`. A positive coefficient would indicate that friendship ties are more likely between students from the same class than between students from different classes.
+
+Another hypothesis could be that Instead of assuming a simple linear relation between alcohol consumption and activity, one could test whether alcohol consumption is associated with more extreme activity patterns. The hypothesis would be that students with higher alcohol consumption are more likely to have atypical outgoing nomination behavior. They either nominate many more friends than average or much fewer friends than average. This would capture the idea that alcohol consumption may be linked to both social integration in some peer groups and social isolation in others. Such an effect could be modeled by a custom statistic that measures the squared deviation of each student’s outdegree from the mean outdegree, weighted by that student’s alcohol consumption. A positive coefficient would indicate that high-alcohol students tend to have more extreme outgoing degree values, while a negative coefficient would indicate that their activity levels are closer to the average.
