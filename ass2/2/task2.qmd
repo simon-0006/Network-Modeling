@@ -17,12 +17,12 @@ header-includes:
 library(statnet)
 
 # Loading data
-mat <- as.matrix(read.csv("Glasgow/f1.csv", header=FALSE))
+mat <- as.matrix(read.csv("../data/f1.csv", header=FALSE))
 net <- network(mat)
 
 # adding attributes to the network
-dem <- read.csv("Glasgow/demographic.csv", header=TRUE)
-alc <- read.csv("Glasgow/alcohol.csv", header=TRUE)
+dem <- read.csv("../data/demographic.csv", header=TRUE)
+alc <- read.csv("../data/alcohol.csv", header=TRUE)
 set.vertex.attribute(net, "gender", dem$gender)
 set.vertex.attribute(net, "age", dem$age)
 set.vertex.attribute(net, "alc", alc$Wave.1)
@@ -106,8 +106,7 @@ This model includes `edges` as a baseline density term and `nodematch("gender")`
 
 # (3)
 
-This model did not converge. A likely reason is the raw `triangles` term, which can cause degeneracy or near-degeneracy in ERGMs by putting too much probability mass on extreme networks. This you can see in the output suggesting that sampeled networks have more than 20 times the edges of our target network. We therefore replace `triangles` with the geometrically weighted edgewise shared partners term `gwesp`, which captures transitive closure more stably.
-We chose a low fixed decay parameter of 0.1 because it gave stable convergence while still capturing transitive closure in the sparse network.
+This model did not converge. A likely reason is the raw `triangles` term, which can cause degeneracy or near-degeneracy in ERGMs by putting too much probability mass on extreme networks. This you can see in the output suggesting that sampeled networks have more than 20 times the edges of our target network. We therefore replace `triangles` with the geometrically weighted edgewise shared partners term `gwesp`, which captures transitive closure more stably. We chose a low fixed decay parameter of 0.1 because it gave stable convergence while still capturing transitive closure in the sparse network.
 
 We retained this specification as the final model:
 
