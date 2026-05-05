@@ -228,20 +228,14 @@ s_\text{GWD}(x',\alpha) &amp;= e^\alpha \cdot \left(\sum_{i=1}^{n}\left(1 - \lef
 </section>
 <section id="iii." class="level3">
 <h3 class="anchored" data-anchor-id="iii.">iii.</h3>
-<p>The first observation is that <span class="math inline">\(\alpha&lt;0\)</span> usually doesn’t make sense because it distinguishes between odd and even outdegree very strongly.</p>
-<p>Next, if <span class="math inline">\(\alpha\)</span> is close to zero, then only the first edge contributes significantly to the <code>gwodegree</code> statistic.</p>
-<p>[TODO]</p>
+<p>We can observe from the figures that the decay parameter <span class="math inline">\(\alpha\)</span> controls how quickly the marginal contribution of an additional out-edge decays with higher out-degree. As shown above, the marginal contribution simplifies to <span class="math inline">\((1-e^{-\alpha})^k\)</span>. For non-negative <span class="math inline">\(\alpha\)</span> the base of this exponential in <span class="math inline">\(k\)</span> lies between 0 and 1, so we get a nice exponential decay. The larger <span class="math inline">\(\alpha\)</span>, the closer the base gets to 1 and thus the slower the exponential decay gets. So adding another out-edge to an already high degree vertex still contributes significantly. For <span class="math inline">\(\alpha\)</span> close to 0, the base also gets close to 0, and thus the exponential decay is way faster. So adding another out-edge only contributes significantly if the vertex was low degree before.</p>
+<p>For negative <span class="math inline">\(\alpha\)</span>, the base of the exponential is negative too. So the marginal contribution will alternate in sign depending on parity of <span class="math inline">\(k\)</span>. So a negative decay parameter <span class="math inline">\(\alpha\)</span> is difficult to interpret as having a reasonable effect, unless the model aims to treat even degrees differently than odd degrees.</p>
 </section>
 <section id="iv." class="level3">
 <h3 class="anchored" data-anchor-id="iv.">iv.</h3>
-<p>Large. [TODO]</p>
+<p>As explained in <strong>iii</strong>, choosing <span class="math inline">\(\alpha\)</span> close to 0 would not make sense in this scenario, since adding an additional edge to already active (so high-degree) vertices only has a very small effect on the <code>gwodegree</code> statistic. Choosing <span class="math inline">\(\alpha\)</span> negative doesn’t make sense either since we don’t want the statistic to depend on the parity of the degree. So we choose <span class="math inline">\(\alpha\)</span> large. This means that even for high degree vertices, adding another edge increases the <code>gwodegree</code> statistic significantly. But note that no matter how large <span class="math inline">\(\alpha\)</span>, the effect of adding the 100th edge will never be larger than the effect of adding the 1st edge. If we are hoping for a statistic where adding one edge to a high degree vertex has a larger effect than adding one edge to a low degree vertex, then we should choose an entirely different statistic.</p>
+<p>So we should choose <span class="math inline">\(\alpha\)</span> moderately large, such that the decay of the marginal is slow. Like that adding out-edges to high-degree vertices still contributes significantly.</p>
 </section>
-</section>
-<section id="section" class="level2">
-<h2 class="anchored" data-anchor-id="section">(2)</h2>
-</section>
-<section id="section-1" class="level2">
-<h2 class="anchored" data-anchor-id="section-1">(3)</h2>
 </section>
 </section>
 

@@ -1,0 +1,180 @@
+
+
+-----------------------------------
+New Analysis started.
+Date and time: 04/05/2026 22:02:22
+New results follow.
+-----------------------------------
+
+RSiena version 1.6.6 (20 Apr 26)
+
+
+@1
+Estimation by stochastic approximation algorithm.
+=================================================
+
+Current random number seed is 161.
+Effects object used: myeff2 
+Model Type:
+ Standard actor-oriented model 
+Behavioral Model Type:
+ Standard behavior actor-oriented model ('restrict')
+Estimation method: unconditional moment estimation
+.
+
+Time duration for simulations in each period is 1.0.
+Standard errors are estimated with the likelihood ratio method.
+Dolby method (regression on scores) is used.
+Initial value of gain parameter is  0.2000000.
+Reduction factor for gain parameter is  0.5000000.
+Number of subphases in Phase 2 is 4.
+
+Initial parameter values are 
+  1. rate:  constant friendship2 rate (period 1)            7.4542
+  2. rate:  constant friendship2 rate (period 2)            6.8293
+  3. eval:  outdegree (density)                            -1.6130
+  4. eval:  reciprocity                                     0.0000
+  5. eval:  transitive triplets                             0.0000
+  6. eval:  3-cycles                                        0.0000
+  7. eval:  indegree - popularity (sqrt)                    0.0000
+  8. eval:  logdistCov2                                     0.0000
+  9. eval:  genderCov2 alter                                0.0000
+ 10. eval:  genderCov2 ego                                  0.0000
+ 11. eval:  same genderCov2                                 0.0000
+ 12. eval:  drinkingbeh similarity                          0.0000
+ 13. rate:  rate drinkingbeh (period 1)                     0.7719
+ 14. rate:  rate drinkingbeh (period 2)                     1.0501
+ 15. eval:  drinkingbeh linear shape                        0.3650
+ 16. eval:  drinkingbeh quadratic shape                     0.0000
+ 17. eval:  drinkingbeh average similarity                  0.0000
+ 18. eval:  drinkingbeh indegree                            0.0000
+ 19. eval:  drinkingbeh: effect from genderCov2             0.0000
+
+
+Values of target statistics are
+  1. Amount of network change in period 1                               477.0000
+  2. Amount of network change in period 2                               437.0000
+  3. Number of ties                                                     909.0000
+  4. Number of reciprocated ties                                        548.0000
+  5. Number of transitive triplets                                     1146.0000
+  6. 3-cycles                                                           328.0000
+  7. Sum of indegrees x sqrt(indegree)                                 1956.3520
+  8. Sum of ties x logdistCov2                                         -189.9997
+  9. Sum indegrees x genderCov2                                         -37.6047
+ 10. Sum outdegrees x genderCov2                                        -22.6047
+ 11. Same values on genderCov2                                          814.0000
+ 12. Similarity on drinkingbeh                                           78.6410
+ 13. Amount of behavioral change in period 1 on drinkingbeh              75.0000
+ 14. Amount of behavioral change in period 2 on drinkingbeh              99.0000
+ 15. drinkingbeh centered sum                                            36.5380
+ 16. drinkingbeh sum of cent. squares                                   347.6668
+ 17. drinkingbeh average similarity                                      17.5521
+ 18. drinkingbeh indegrees                                              169.7766
+ 19. drinkingbeh x genderCov2                                            26.9709
+These were calculated from the data.
+
+ 19 parameters, 19 statistics
+
+Estimation of derivatives by the LR method (type 1).
+
+
+@2
+End of stochastic approximation algorithm, phase 3.
+---------------------------------------------------
+
+Total of 5763 iterations.
+Parameter estimates based on 2763 iterations,
+convergence diagnostics, covariance and derivative matrices based on 3000 iterations.
+
+Information for convergence diagnosis.
+Averages, standard deviations, and t-ratios for deviations from targets:
+  1.  -0.7083  19.7163  -0.0359 
+  2.   0.0833  18.0988   0.0046 
+  3.   0.4917  41.8066   0.0118 
+  4.  -0.1600  36.7865  -0.0043 
+  5.  -1.2580 200.6974  -0.0063 
+  6.   0.2997  62.5675   0.0048 
+  7.   1.0144 135.3065   0.0075 
+  8.  -0.1872  22.9154  -0.0082 
+  9.  -0.3568  19.1014  -0.0187 
+ 10.   0.3706  19.6732   0.0188 
+ 11.   0.0077  39.6935   0.0002 
+ 12.  -0.1905   8.3030  -0.0229 
+ 13.  -0.4247   7.7132  -0.0551 
+ 14.  -0.1330   8.9157  -0.0149 
+ 15.  -0.2643  17.2101  -0.0154 
+ 16.  -1.4122  27.2340  -0.0519 
+ 17.  -0.0251   3.3792  -0.0074 
+ 18.  -1.5127  66.7737  -0.0227 
+ 19.   0.1787   8.1370   0.0220 
+
+Good convergence is indicated by the t-ratios being close to zero.
+
+Overall maximum convergence ratio =  0.178 .
+
+
+
+@2
+Estimation Results.
+-------------------
+
+Regular end of estimation algorithm.
+Total of 5763 iteration steps.
+
+
+@3
+Estimates and standard errors
+                             
+Network Dynamics
+ 1. rate:  constant friendship2 rate (period 1)                   10.9352  (   1.0565)
+ 2. rate:  constant friendship2 rate (period 2)                    8.9980  (   0.8542)
+ 3. eval:  outdegree (density)                                    -2.8040  (   0.1873)
+ 4. eval:  reciprocity                                             2.1664  (   0.1085)
+ 5. eval:  transitive triplets                                     0.6722  (   0.0450)
+ 6. eval:  3-cycles                                               -0.4499  (   0.0895)
+ 7. eval:  indegree - popularity (sqrt)                           -0.3027  (   0.0837)
+ 8. eval:  logdistCov2                                            -0.1617  (   0.0460)
+ 9. eval:  genderCov2 alter                                       -0.1543  (   0.1042)
+10. eval:  genderCov2 ego                                          0.1412  (   0.1007)
+11. eval:  same genderCov2                                         0.8886  (   0.0967)
+12. eval:  drinkingbeh similarity                                  0.8923  (   0.2716)
+Behavior Dynamics
+
+13. rate:  rate drinkingbeh (period 1)                             1.5293  (   0.2447)
+14. rate:  rate drinkingbeh (period 2)                             2.3287  (   0.4014)
+15. eval:  drinkingbeh linear shape                                0.1828  (   0.2441)
+16. eval:  drinkingbeh quadratic shape                             0.0644  (   0.0707)
+17. eval:  drinkingbeh average similarity                          4.9856  (   1.5566)
+18. eval:  drinkingbeh indegree                                    0.0466  (   0.0639)
+19. eval:  drinkingbeh: effect from genderCov2                     0.0044  (   0.1779)
+
+
+@3
+Covariance matrices
+                   
+Covariance matrix of estimates (correlations below diagonal):
+     1.116     -0.100      0.004      0.008     -0.005      0.001      0.006      0.003     -0.001     -0.003     -0.011     -0.038      0.021     -0.008     -0.008      0.001      0.057      0.003      0.000
+    -0.111      0.730      0.009     -0.005     -0.005      0.006      0.004      0.001      0.000      0.007     -0.009     -0.019      0.004      0.005      0.014      0.005      0.039     -0.003      0.000
+     0.022      0.057      0.035     -0.004      0.001      0.000     -0.013     -0.001     -0.001     -0.001     -0.007     -0.002      0.001      0.001     -0.001      0.000     -0.007      0.000     -0.001
+     0.073     -0.050     -0.175      0.012      0.002     -0.006      0.001      0.000      0.000     -0.001     -0.001     -0.004     -0.001      0.001      0.000      0.000     -0.010      0.000      0.000
+    -0.098     -0.118      0.128      0.355      0.002     -0.003     -0.001      0.000      0.000      0.000      0.000      0.000     -0.001      0.002      0.000      0.000     -0.011      0.000      0.000
+     0.007      0.077      0.027     -0.609     -0.790      0.008      0.000      0.000     -0.001      0.001      0.001      0.001      0.001     -0.003      0.001      0.000      0.016      0.000      0.000
+     0.064      0.050     -0.855      0.116     -0.253      0.016      0.007      0.000      0.001      0.000      0.000     -0.002      0.000     -0.001      0.001      0.000      0.004      0.000      0.000
+     0.063      0.023     -0.059      0.035      0.018     -0.016      0.093      0.002      0.000      0.000      0.000     -0.001      0.000      0.000      0.000      0.000      0.000      0.000      0.000
+    -0.010      0.000     -0.047      0.039      0.041     -0.078      0.119     -0.025      0.011     -0.008     -0.001      0.000      0.001      0.000      0.000      0.000     -0.002      0.000     -0.001
+    -0.030      0.076     -0.049     -0.061     -0.077      0.110     -0.025      0.036     -0.746      0.010      0.002      0.001      0.000      0.000      0.000      0.000      0.006      0.000      0.001
+    -0.109     -0.105     -0.402     -0.110     -0.090      0.104     -0.040      0.021     -0.113      0.171      0.009      0.000      0.000     -0.001     -0.001      0.000      0.001      0.000      0.000
+    -0.132     -0.081     -0.035     -0.130     -0.033      0.047     -0.081     -0.050     -0.001      0.037      0.017      0.074      0.007      0.017     -0.002      0.000      0.008      0.000     -0.001
+     0.082      0.017      0.018     -0.052     -0.062      0.052     -0.021     -0.014      0.041     -0.004     -0.010      0.109      0.060      0.011     -0.006      0.003      0.054      0.000      0.000
+    -0.018      0.013      0.012      0.020      0.084     -0.086     -0.027      0.009     -0.011     -0.002     -0.019      0.155      0.109      0.161     -0.010     -0.001     -0.055     -0.002      0.008
+    -0.031      0.068     -0.032      0.007     -0.025      0.037      0.050      0.003     -0.001     -0.012     -0.039     -0.023     -0.097     -0.104      0.060     -0.001     -0.028     -0.014     -0.007
+     0.019      0.080     -0.006     -0.042     -0.111      0.060      0.026      0.006     -0.034      0.041      0.005     -0.026      0.158     -0.040     -0.068      0.005      0.074      0.001     -0.003
+     0.034      0.030     -0.025     -0.058     -0.155      0.114      0.031      0.006     -0.013      0.041      0.009      0.019      0.142     -0.088     -0.073      0.671      2.423      0.026     -0.042
+     0.044     -0.064      0.023     -0.005     -0.009     -0.004     -0.033      0.015     -0.013      0.025      0.038     -0.027      0.015     -0.071     -0.899      0.126      0.265      0.004      0.002
+     0.000     -0.001     -0.018     -0.008      0.004      0.009      0.024      0.007     -0.038      0.037      0.009     -0.028      0.004      0.110     -0.161     -0.219     -0.152      0.146      0.032
+
+Derivative matrix of expected statistics X by parameters and
+covariance/correlation matrix of X can be found using
+summary(ans) within R, or by using the 'verbose' option in Siena07.
+ 
+Total computation time 570.35 seconds.

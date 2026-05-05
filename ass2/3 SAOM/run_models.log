@@ -1,0 +1,594 @@
+
+R version 4.5.2 (2025-10-31) -- "[Not] Part in a Rumble"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> suppressPackageStartupMessages({
++   library(RSiena)
++   library(sna)
++   library(network)
++ })
+> 
+> set.seed(161)
+> data_path <- "Glasgow"
+> 
+> f1 <- as.matrix(read.csv(file.path(data_path, "f1.csv"), header = FALSE))
+> f2 <- as.matrix(read.csv(file.path(data_path, "f2.csv"), header = FALSE))
+> f3 <- as.matrix(read.csv(file.path(data_path, "f3.csv"), header = FALSE))
+> dimnames(f1) <- dimnames(f2) <- dimnames(f3) <- NULL
+> 
+> demographic <- read.csv(file.path(data_path, "demographic.csv"))
+> gender <- demographic$gender
+> age    <- demographic$age
+> 
+> alcohol <- as.matrix(read.csv(file.path(data_path, "alcohol.csv")))
+> dimnames(alcohol) <- NULL
+> alcohol[alcohol == 0] <- NA   # codebook is 1..5
+> 
+> logdistance <- as.matrix(read.csv(file.path(data_path, "logdistance.csv"), header = FALSE))
+> dimnames(logdistance) <- NULL
+> 
+> n <- nrow(f1)
+> 
+> # ---- GeodesicDistribution helper (RSiena manual, sec. 7) ----
+> GeodesicDistribution <- function(i, data, sims, period, groupName, varName,
++                                  levls = c(1:5, Inf), cumulative = TRUE, ...) {
++   x <- networkExtraction(i, data, sims, period, groupName, varName)
++   a <- sna::geodist(symmetrize(x))$gdist
++   if (cumulative) {
++     gdi <- sapply(levls, function(i) sum(a <= i))
++   } else {
++     gdi <- sapply(levls, function(i) sum(a == i))
++   }
++   names(gdi) <- as.character(levls)
++   gdi
++ }
+> 
+> # ---- Task 3.1.1: Jaccard ----
+> jaccard <- function(A, B) {
++   A <- ifelse(is.na(A), 0, A); B <- ifelse(is.na(B), 0, B)
++   n11 <- sum(A == 1 & B == 1)
++   n10 <- sum(A == 1 & B == 0)
++   n01 <- sum(A == 0 & B == 1)
++   n11 / (n11 + n10 + n01)
++ }
+> jac <- c(j12 = jaccard(f1, f2), j23 = jaccard(f2, f3), j13 = jaccard(f1, f3))
+> 
+> # ---- Task 3.1.2: network-only data + effects ----
+> friendship <- sienaDependent(array(c(f1, f2, f3), dim = c(n, n, 3)))
+> genderCov  <- coCovar(as.numeric(gender))
+> ageCov     <- coCovar(as.numeric(age))
+> alcoholCov <- coCovar(as.numeric(alcohol[, 1]))
+> logdistCov <- coDyadCovar(logdistance)
+> 
+> mydata1 <- sienaDataCreate(friendship, genderCov, ageCov, alcoholCov, logdistCov)
+> 
+> myeff1 <- getEffects(mydata1)
+> myeff1 <- includeEffects(myeff1, transTrip)
+  effectNumber effectName          shortName include fix   test  initialValue
+1 24           transitive triplets transTrip TRUE    FALSE FALSE          0  
+  parm
+1 0   
+> myeff1 <- includeEffects(myeff1, cycle3)
+  effectNumber effectName shortName include fix   test  initialValue parm
+1 44           3-cycles   cycle3    TRUE    FALSE FALSE          0   0   
+> myeff1 <- includeEffects(myeff1, inPopSqrt)
+  effectNumber effectName                   shortName include fix   test 
+1 87           indegree - popularity (sqrt) inPopSqrt TRUE    FALSE FALSE
+  initialValue parm
+1          0   0   
+> myeff1 <- includeEffects(myeff1, simX, interaction1 = "alcoholCov")
+  effectNumber effectName            shortName include fix   test  initialValue
+1 727          alcoholCov similarity simX      TRUE    FALSE FALSE          0  
+  parm
+1 0   
+> myeff1 <- includeEffects(myeff1, X,    interaction1 = "logdistCov")
+  effectNumber effectName shortName include fix   test  initialValue parm
+1 265          logdistCov X         TRUE    FALSE FALSE          0   0   
+> myeff1 <- includeEffects(myeff1, egoX, altX, sameX, interaction1 = "genderCov")
+  effectNumber effectName      shortName include fix   test  initialValue parm
+1 298          genderCov alter altX      TRUE    FALSE FALSE          0   0   
+2 313          genderCov ego   egoX      TRUE    FALSE FALSE          0   0   
+3 369          same genderCov  sameX     TRUE    FALSE FALSE          0   0   
+> 
+> algo1 <- sienaAlgorithmCreate(projname = "saom_t31", seed = 161, n3 = 3000)
+If you use this algorithm object, siena07 will create/use an output file saom_t31.txt .
+> 
+> if (file.exists("model1.RData")) {
++   load("model1.RData")
++   cat("Loaded existing model1\n")
++ } else {
++   cat("=== Estimating Model 1 ===\n")
++   model1 <- siena07(algo1, data = mydata1, effects = myeff1,
++                     returnDeps = TRUE, batch = TRUE, verbose = FALSE)
++   cat("Model 1 tconv.max:", model1$tconv.max,
++       " max|t|:", max(abs(model1$tconv)), "\n")
++   if (model1$tconv.max > 0.25 || max(abs(model1$tconv)) > 0.10) {
++     model1 <- siena07(algo1, data = mydata1, effects = myeff1,
++                       prevAns = model1, returnDeps = TRUE,
++                       batch = TRUE, verbose = FALSE)
++     cat("Model 1 rerun tconv.max:", model1$tconv.max, "\n")
++   }
++   save(model1, file = "model1.RData")
++ }
+=== Estimating Model 1 ===
+
+Start phase 0 
+theta: -1.61  0.00  0.00  0.00  0.00  0.00  0.00  0.00  0.00  0.00 
+
+Start phase 1 
+Phase 1 Iteration 1 Progress: 0%
+Phase 1 Iteration 2 Progress: 0%
+Phase 1 Iteration 3 Progress: 0%
+Phase 1 Iteration 4 Progress: 0%
+Phase 1 Iteration 5 Progress: 0%
+Phase 1 Iteration 10 Progress: 0%
+Phase 1 Iteration 15 Progress: 0%
+Phase 1 Iteration 20 Progress: 0%
+Phase 1 Iteration 25 Progress: 0%
+Phase 1 Iteration 30 Progress: 1%
+Phase 1 Iteration 35 Progress: 1%
+Phase 1 Iteration 40 Progress: 1%
+Phase 1 Iteration 45 Progress: 1%
+Phase 1 Iteration 50 Progress: 1%
+theta: -1.7012  0.1691  0.1354  0.0797 -0.0343 -0.0250 -0.0261  0.0177  0.0352  0.1359 
+
+Start phase 2.1
+Phase 2 Subphase 1 Iteration 1 Progress: 10%
+Phase 2 Subphase 1 Iteration 2 Progress: 10%
+theta -1.7503  0.2660  0.2089  0.1211 -0.0534 -0.0361 -0.0431  0.0289  0.0523  0.2061 
+ac 1.054 1.047 1.111 1.078 1.059 0.992 2.192 0.349 0.632 1.423 
+Phase 2 Subphase 1 Iteration 3 Progress: 10%
+Phase 2 Subphase 1 Iteration 4 Progress: 10%
+theta -1.9108  0.5874  0.4306  0.2419 -0.1148 -0.0726 -0.0817  0.0579  0.1172  0.3851 
+ac 0.857 1.173 0.989 0.747 0.809 1.129 2.162 0.321 0.109 1.422 
+Phase 2 Subphase 1 Iteration 5 Progress: 10%
+Phase 2 Subphase 1 Iteration 6 Progress: 10%
+theta -2.0779  1.1252  0.5057  0.1635 -0.1811 -0.1181 -0.0994  0.0792  0.2431  0.3882 
+ac 0.980 1.176 0.979 0.848 0.947 1.069 2.029 0.186 0.725 1.335 
+Phase 2 Subphase 1 Iteration 7 Progress: 10%
+Phase 2 Subphase 1 Iteration 8 Progress: 10%
+theta -2.2095  1.6682  0.4728 -0.0398 -0.2322 -0.1444 -0.1255  0.0659  0.3872  0.2701 
+ac  1.0089  1.1516  0.8469  0.7857  0.9693  1.0653 -0.0108  0.2632  0.5849  0.8535 
+Phase 2 Subphase 1 Iteration 9 Progress: 10%
+Phase 2 Subphase 1 Iteration 10 Progress: 10%
+theta -2.3250  2.0142  0.4993 -0.1711 -0.2706 -0.1523 -0.1286  0.0428  0.5037  0.2610 
+ac  1.0425  1.1606  0.7146  0.7247  1.0027  0.8391 -0.2362 -0.0159  0.5520  0.6337 
+Phase 2 Subphase 1 Iteration 1 Progress: 10%
+Phase 2 Subphase 1 Iteration 2 Progress: 10%
+Phase 2 Subphase 1 Iteration 3 Progress: 10%
+Phase 2 Subphase 1 Iteration 4 Progress: 10%
+Phase 2 Subphase 1 Iteration 5 Progress: 10%
+Phase 2 Subphase 1 Iteration 6 Progress: 10%
+Phase 2 Subphase 1 Iteration 7 Progress: 10%
+Phase 2 Subphase 1 Iteration 8 Progress: 10%
+Phase 2 Subphase 1 Iteration 9 Progress: 10%
+Phase 2 Subphase 1 Iteration 10 Progress: 11%
+theta -2.766  2.247  0.695 -0.488 -0.345 -0.182 -0.161  0.138  0.932  0.394 
+ac -0.798 -0.777 -0.701 -0.714 -0.808 -0.507 -0.255 -0.190 -0.741 -0.969 
+theta: -2.766  2.247  0.695 -0.488 -0.345 -0.182 -0.161  0.138  0.932  0.394 
+
+Start phase 2.2
+Phase 2 Subphase 2 Iteration 1 Progress: 15%
+Phase 2 Subphase 2 Iteration 2 Progress: 15%
+Phase 2 Subphase 2 Iteration 3 Progress: 15%
+Phase 2 Subphase 2 Iteration 4 Progress: 15%
+Phase 2 Subphase 2 Iteration 5 Progress: 15%
+Phase 2 Subphase 2 Iteration 6 Progress: 15%
+Phase 2 Subphase 2 Iteration 7 Progress: 15%
+Phase 2 Subphase 2 Iteration 8 Progress: 15%
+Phase 2 Subphase 2 Iteration 9 Progress: 15%
+Phase 2 Subphase 2 Iteration 10 Progress: 15%
+theta -2.749  2.205  0.681 -0.459 -0.313 -0.150 -0.172  0.141  0.875  0.364 
+ac -0.4156 -0.5861 -0.6184 -0.6459 -0.4741 -0.1186 -0.2578 -0.0312 -0.4317 -0.2063 
+theta: -2.749  2.205  0.681 -0.459 -0.313 -0.150 -0.172  0.141  0.875  0.364 
+
+Start phase 2.3
+Phase 2 Subphase 3 Iteration 1 Progress: 20%
+Phase 2 Subphase 3 Iteration 2 Progress: 20%
+Phase 2 Subphase 3 Iteration 3 Progress: 20%
+Phase 2 Subphase 3 Iteration 4 Progress: 20%
+Phase 2 Subphase 3 Iteration 5 Progress: 20%
+Phase 2 Subphase 3 Iteration 6 Progress: 20%
+Phase 2 Subphase 3 Iteration 7 Progress: 20%
+Phase 2 Subphase 3 Iteration 8 Progress: 20%
+Phase 2 Subphase 3 Iteration 9 Progress: 20%
+Phase 2 Subphase 3 Iteration 10 Progress: 20%
+theta -2.792  2.223  0.682 -0.468 -0.299 -0.153 -0.149  0.122  0.884  0.374 
+ac -0.1088 -0.2531 -0.2003 -0.2382 -0.1575 -0.1410 -0.0119 -0.1665 -0.1533 -0.0244 
+theta: -2.792  2.223  0.682 -0.468 -0.299 -0.153 -0.149  0.122  0.884  0.374 
+
+Start phase 2.4
+Phase 2 Subphase 4 Iteration 1 Progress: 29%
+Phase 2 Subphase 4 Iteration 2 Progress: 29%
+Phase 2 Subphase 4 Iteration 3 Progress: 29%
+Phase 2 Subphase 4 Iteration 4 Progress: 29%
+Phase 2 Subphase 4 Iteration 5 Progress: 29%
+Phase 2 Subphase 4 Iteration 6 Progress: 29%
+Phase 2 Subphase 4 Iteration 7 Progress: 29%
+Phase 2 Subphase 4 Iteration 8 Progress: 29%
+Phase 2 Subphase 4 Iteration 9 Progress: 29%
+Phase 2 Subphase 4 Iteration 10 Progress: 29%
+Phase 2 Subphase 4 Iteration 500 Progress: 38%
+theta -2.793  2.216  0.678 -0.453 -0.298 -0.152 -0.166  0.131  0.884  0.379 
+ac -0.1262 -0.1488 -0.1916 -0.1961 -0.1259 -0.0224 -0.0981 -0.1200 -0.0782 -0.0939 
+theta -2.794  2.208  0.680 -0.459 -0.300 -0.152 -0.158  0.132  0.888  0.387 
+ac -0.1221 -0.1385 -0.1867 -0.1808 -0.1255 -0.0266 -0.0868 -0.0764 -0.0824 -0.0781 
+theta: -2.794  2.208  0.680 -0.459 -0.300 -0.152 -0.158  0.132  0.888  0.387 
+
+Start phase 3 
+Phase 3 Iteration 200 Progress 48%
+Phase 3 Iteration 400 Progress 52%
+Phase 3 Iteration 600 Progress 56%
+Phase 3 Iteration 800 Progress 59%
+Phase 3 Iteration 1000 Progress 63%
+Phase 3 Iteration 1200 Progress 67%
+Phase 3 Iteration 1400 Progress 71%
+Phase 3 Iteration 1600 Progress 74%
+Phase 3 Iteration 1800 Progress 78%
+Phase 3 Iteration 2000 Progress 82%
+Phase 3 Iteration 2200 Progress 85%
+Phase 3 Iteration 2400 Progress 89%
+Phase 3 Iteration 2600 Progress 93%
+Phase 3 Iteration 2800 Progress 96%
+Phase 3 Iteration 3000 Progress 100%
+Model 1 tconv.max: 0.09084084  max|t|: 0.05172696 
+> 
+> cat("\n=== Model 1 GoF ===\n")
+
+=== Model 1 GoF ===
+> gof1_indeg  <- sienaGOF(model1, IndegreeDistribution,  varName = "friendship", cumulative = FALSE)
+> gof1_outdeg <- sienaGOF(model1, OutdegreeDistribution, varName = "friendship", cumulative = FALSE)
+> gof1_geo    <- sienaGOF(model1, GeodesicDistribution,  varName = "friendship", cumulative = FALSE)
+> gof1_tri    <- sienaGOF(model1, TriadCensus,           varName = "friendship")
+> 
+> save(gof1_indeg, gof1_outdeg, gof1_geo, gof1_tri, file = "gof1.RData")
+> 
+> # ---- Task 3.2: co-evolution ----
+> friendship2 <- sienaDependent(array(c(f1, f2, f3), dim = c(n, n, 3)))
+> drinkingbeh <- sienaDependent(alcohol, type = "behavior")
+> genderCov2  <- coCovar(as.numeric(gender))
+> ageCov2     <- coCovar(as.numeric(age))
+> logdistCov2 <- coDyadCovar(logdistance)
+> 
+> mydata2 <- sienaDataCreate(friendship2, drinkingbeh, genderCov2, ageCov2, logdistCov2)
+> 
+> myeff2 <- getEffects(mydata2)
+> myeff2 <- includeEffects(myeff2, transTrip, cycle3)
+  effectNumber effectName          shortName include fix   test  initialValue
+1 24           transitive triplets transTrip TRUE    FALSE FALSE          0  
+2 44           3-cycles            cycle3    TRUE    FALSE FALSE          0  
+  parm
+1 0   
+2 0   
+> myeff2 <- includeEffects(myeff2, inPopSqrt)
+  effectNumber effectName                   shortName include fix   test 
+1 87           indegree - popularity (sqrt) inPopSqrt TRUE    FALSE FALSE
+  initialValue parm
+1          0   0   
+> myeff2 <- includeEffects(myeff2, egoX, altX, sameX, interaction1 = "genderCov2")
+  effectNumber effectName       shortName include fix   test  initialValue parm
+1 298          genderCov2 alter altX      TRUE    FALSE FALSE          0   0   
+2 313          genderCov2 ego   egoX      TRUE    FALSE FALSE          0   0   
+3 369          same genderCov2  sameX     TRUE    FALSE FALSE          0   0   
+> myeff2 <- includeEffects(myeff2, X,    interaction1 = "logdistCov2")
+  effectNumber effectName  shortName include fix   test  initialValue parm
+1 265          logdistCov2 X         TRUE    FALSE FALSE          0   0   
+> myeff2 <- includeEffects(myeff2, simX, interaction1 = "drinkingbeh")
+  effectNumber effectName             shortName include fix   test 
+1 727          drinkingbeh similarity simX      TRUE    FALSE FALSE
+  initialValue parm
+1          0   0   
+> myeff2 <- includeEffects(myeff2, indeg, name = "drinkingbeh", interaction1 = "friendship2")
+  effectNumber effectName           shortName include fix   test  initialValue
+1 980          drinkingbeh indegree indeg     TRUE    FALSE FALSE          0  
+  parm
+1 0   
+> myeff2 <- includeEffects(myeff2, avSim, name = "drinkingbeh", interaction1 = "friendship2")
+  effectNumber effectName                     shortName include fix   test 
+1 943          drinkingbeh average similarity avSim     TRUE    FALSE FALSE
+  initialValue parm
+1          0   0   
+> myeff2 <- includeEffects(myeff2, effFrom, name = "drinkingbeh", interaction1 = "genderCov2")
+  effectNumber effectName                          shortName include fix  
+1 1074         drinkingbeh: effect from genderCov2 effFrom   TRUE    FALSE
+  test  initialValue parm
+1 FALSE          0   0   
+> 
+> algo2 <- sienaAlgorithmCreate(projname = "saom_t32", seed = 161, n3 = 3000)
+If you use this algorithm object, siena07 will create/use an output file saom_t32.txt .
+> 
+> if (file.exists("model2.RData")) {
++   load("model2.RData")
++   cat("Loaded existing model2\n")
++ } else {
++   cat("\n=== Estimating Model 2 ===\n")
++   model2 <- siena07(algo2, data = mydata2, effects = myeff2,
++                     returnDeps = TRUE, batch = TRUE, verbose = FALSE)
++   cat("Model 2 tconv.max:", model2$tconv.max,
++       " max|t|:", max(abs(model2$tconv)), "\n")
++   tries <- 0
++   while ((model2$tconv.max > 0.25 || max(abs(model2$tconv)) > 0.10) && tries < 3) {
++     tries <- tries + 1
++     model2 <- siena07(algo2, data = mydata2, effects = myeff2,
++                       prevAns = model2, returnDeps = TRUE,
++                       batch = TRUE, verbose = FALSE)
++     cat("Model 2 rerun", tries, "tconv.max:", model2$tconv.max, "\n")
++   }
++   save(model2, file = "model2.RData")
++ }
+
+=== Estimating Model 2 ===
+
+Start phase 0 
+theta:  7.454  6.829 -1.613  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.772  1.050  0.365  0.000  0.000  0.000  0.000 
+
+Start phase 1 
+Phase 1 Iteration 1 Progress: 0%
+Phase 1 Iteration 2 Progress: 0%
+Phase 1 Iteration 3 Progress: 0%
+Phase 1 Iteration 4 Progress: 0%
+Phase 1 Iteration 5 Progress: 0%
+Phase 1 Iteration 10 Progress: 0%
+Phase 1 Iteration 15 Progress: 0%
+Phase 1 Iteration 20 Progress: 0%
+Phase 1 Iteration 25 Progress: 0%
+Phase 1 Iteration 30 Progress: 0%
+Phase 1 Iteration 35 Progress: 1%
+Phase 1 Iteration 40 Progress: 1%
+Phase 1 Iteration 45 Progress: 1%
+Phase 1 Iteration 50 Progress: 1%
+Phase 1 Iteration 55 Progress: 1%
+Phase 1 Iteration 60 Progress: 1%
+theta:  7.63246  6.42436 -1.68741  0.24115  0.09118  0.11886 -0.02814 -0.02811 -0.02311 -0.01149  0.01263 -0.00240  0.84084  1.11744  0.36561 -0.00383  0.39808  0.01074  0.20555 
+
+Start phase 2.1
+Phase 2 Subphase 1 Iteration 1 Progress: 19%
+Phase 2 Subphase 1 Iteration 2 Progress: 19%
+theta  7.7720  6.3390 -1.7374  0.3931  0.1570  0.1945 -0.0471 -0.0469 -0.0392 -0.0150  0.0232 -0.0135  0.8890  1.1771  0.3473 -0.0122  0.5361  0.0181  0.3418 
+ac 1.268 1.449 0.962 1.135 1.214 1.235 0.950 1.223 1.099 2.566 1.215 1.060 2.146 0.967 0.610 1.482 1.589 0.698 0.584 
+Phase 2 Subphase 1 Iteration 3 Progress: 19%
+Phase 2 Subphase 1 Iteration 4 Progress: 19%
+theta  8.2312  6.3381 -1.9044  0.8820  0.3393  0.3947 -0.1090 -0.1168 -0.0844 -0.0219  0.0808 -0.0253  1.0278  1.4067  0.2924 -0.0111  1.3268  0.0431  0.6820 
+ac 0.931 1.442 0.834 1.200 0.600 0.320 0.784 0.886 1.089 1.306 0.418 1.092 2.400 1.035 0.239 0.963 1.160 0.607 0.553 
+Phase 2 Subphase 1 Iteration 5 Progress: 19%
+Phase 2 Subphase 1 Iteration 6 Progress: 19%
+theta  8.3489  6.0228 -2.0484  1.3384  0.3427  0.2692 -0.1576 -0.1955 -0.0930 -0.0503  0.2331  0.2300  1.2425  1.6424  0.1995  0.0769  3.3381  0.0637  0.4705 
+ac 0.913 1.009 0.873 1.212 0.602 0.361 0.848 0.931 0.738 0.497 0.435 1.167 2.433 0.896 0.217 1.037 1.188 0.542 0.693 
+Phase 2 Subphase 1 Iteration 7 Progress: 19%
+Phase 2 Subphase 1 Iteration 8 Progress: 19%
+theta  8.7869  7.2312 -2.2070  1.6697  0.4081  0.1568 -0.2028 -0.2567 -0.0989 -0.0317  0.3734  0.4281  1.3976  1.9281  0.0704  0.1495  5.0996  0.0679  0.3128 
+ac 0.912 1.057 0.883 1.158 0.526 0.371 0.853 0.928 0.915 1.126 0.529 1.193 1.626 0.782 0.176 0.716 1.174 0.545 0.787 
+Phase 2 Subphase 1 Iteration 9 Progress: 19%
+Phase 2 Subphase 1 Iteration 10 Progress: 19%
+theta  9.1470  7.6825 -2.3285  1.8524  0.4724  0.0429 -0.2391 -0.2691 -0.1095  0.0030  0.5022  0.6136  1.5272  2.1718  0.0695  0.1455  6.2234  0.0669  0.1829 
+ac 0.911 1.023 0.802 0.960 0.240 0.167 0.768 0.838 0.945 1.144 0.290 1.041 1.545 0.793 0.876 0.667 1.107 0.691 0.786 
+Phase 2 Subphase 1 Iteration 1 Progress: 19%
+Phase 2 Subphase 1 Iteration 2 Progress: 19%
+Phase 2 Subphase 1 Iteration 3 Progress: 19%
+Phase 2 Subphase 1 Iteration 4 Progress: 19%
+Phase 2 Subphase 1 Iteration 5 Progress: 19%
+Phase 2 Subphase 1 Iteration 6 Progress: 19%
+Phase 2 Subphase 1 Iteration 7 Progress: 19%
+Phase 2 Subphase 1 Iteration 8 Progress: 19%
+Phase 2 Subphase 1 Iteration 9 Progress: 19%
+Phase 2 Subphase 1 Iteration 10 Progress: 19%
+Phase 2 Subphase 1 Iteration 200 Progress: 22%
+theta 10.7251  8.9540 -2.7972  2.2225  0.7068 -0.4362 -0.3217 -0.1711 -0.1349  0.1235  0.8907  0.8957  1.6941  2.4528  0.2433  0.0187  4.9981  0.0345  0.0605 
+ac -0.1109 -0.1604 -0.5770 -0.5847 -0.5085 -0.5035 -0.5543 -0.4403 -0.0783  0.0387 -0.5812 -0.3786 -0.0258  0.0350 -0.1464  0.0544 -0.0846 -0.1415 -0.3302 
+theta 10.6769  8.7720 -2.7899  2.2066  0.6756 -0.4893 -0.3140 -0.1697 -0.1508  0.1336  0.8964  0.9423  1.5603  2.3782  0.1656  0.0544  4.8106  0.0502  0.0248 
+ac -0.1346 -0.1976 -0.5829 -0.5907 -0.5155 -0.5135 -0.5621 -0.4530 -0.0604  0.0392 -0.5783 -0.4028 -0.0163  0.0979 -0.1132  0.0105 -0.0325 -0.0510 -0.3640 
+theta: 10.6769  8.7720 -2.7899  2.2066  0.6756 -0.4893 -0.3140 -0.1697 -0.1508  0.1336  0.8964  0.9423  1.5603  2.3782  0.1656  0.0544  4.8106  0.0502  0.0248 
+
+Start phase 2.2
+Phase 2 Subphase 2 Iteration 1 Progress: 23%
+Phase 2 Subphase 2 Iteration 2 Progress: 23%
+Phase 2 Subphase 2 Iteration 3 Progress: 23%
+Phase 2 Subphase 2 Iteration 4 Progress: 23%
+Phase 2 Subphase 2 Iteration 5 Progress: 23%
+Phase 2 Subphase 2 Iteration 6 Progress: 23%
+Phase 2 Subphase 2 Iteration 7 Progress: 23%
+Phase 2 Subphase 2 Iteration 8 Progress: 23%
+Phase 2 Subphase 2 Iteration 9 Progress: 23%
+Phase 2 Subphase 2 Iteration 10 Progress: 23%
+Phase 2 Subphase 2 Iteration 1 Progress: 23%
+Phase 2 Subphase 2 Iteration 2 Progress: 23%
+Phase 2 Subphase 2 Iteration 3 Progress: 23%
+Phase 2 Subphase 2 Iteration 4 Progress: 23%
+Phase 2 Subphase 2 Iteration 5 Progress: 23%
+Phase 2 Subphase 2 Iteration 6 Progress: 23%
+Phase 2 Subphase 2 Iteration 7 Progress: 23%
+Phase 2 Subphase 2 Iteration 8 Progress: 23%
+Phase 2 Subphase 2 Iteration 9 Progress: 23%
+Phase 2 Subphase 2 Iteration 10 Progress: 23%
+Phase 2 Subphase 2 Iteration 1 Progress: 23%
+Phase 2 Subphase 2 Iteration 2 Progress: 23%
+Phase 2 Subphase 2 Iteration 3 Progress: 23%
+Phase 2 Subphase 2 Iteration 4 Progress: 23%
+Phase 2 Subphase 2 Iteration 5 Progress: 23%
+Phase 2 Subphase 2 Iteration 6 Progress: 23%
+Phase 2 Subphase 2 Iteration 7 Progress: 23%
+Phase 2 Subphase 2 Iteration 8 Progress: 23%
+Phase 2 Subphase 2 Iteration 9 Progress: 23%
+Phase 2 Subphase 2 Iteration 10 Progress: 23%
+Phase 2 Subphase 2 Iteration 200 Progress: 26%
+theta 10.8764  8.7295 -2.7924  2.1452  0.6373 -0.4899 -0.3063 -0.1668 -0.1332  0.1338  0.9111  0.9356  1.4966  2.4517  0.1496  0.0869  5.5880  0.0517 -0.0295 
+ac -0.0963  0.1615 -0.5283 -0.6083 -0.6632 -0.6481 -0.5788 -0.1907  0.0710  0.1178 -0.4962 -0.1479 -0.1412  0.1430 -0.1333  0.0241  0.0741 -0.0606 -0.1347 
+theta 10.9096  8.9341 -2.7968  2.1695  0.6734 -0.4566 -0.3077 -0.1607 -0.1271  0.1154  0.8935  0.8978  1.5317  2.3585  0.1802  0.0662  5.0620  0.0473  0.0109 
+ac -0.11037  0.05036 -0.52776 -0.59157 -0.62660 -0.60490 -0.56738 -0.14198  0.07457  0.02723 -0.49819 -0.11702 -0.14026  0.01463 -0.22610 -0.00585  0.08322 -0.11858 -0.08404 
+theta: 10.9096  8.9341 -2.7968  2.1695  0.6734 -0.4566 -0.3077 -0.1607 -0.1271  0.1154  0.8935  0.8978  1.5317  2.3585  0.1802  0.0662  5.0620  0.0473  0.0109 
+
+Start phase 2.3
+Phase 2 Subphase 3 Iteration 1 Progress: 28%
+Phase 2 Subphase 3 Iteration 2 Progress: 28%
+Phase 2 Subphase 3 Iteration 3 Progress: 28%
+Phase 2 Subphase 3 Iteration 4 Progress: 28%
+Phase 2 Subphase 3 Iteration 5 Progress: 28%
+Phase 2 Subphase 3 Iteration 6 Progress: 28%
+Phase 2 Subphase 3 Iteration 7 Progress: 28%
+Phase 2 Subphase 3 Iteration 8 Progress: 28%
+Phase 2 Subphase 3 Iteration 9 Progress: 28%
+Phase 2 Subphase 3 Iteration 10 Progress: 28%
+Phase 2 Subphase 3 Iteration 200 Progress: 31%
+theta 10.8616  9.0321 -2.8086  2.1849  0.6692 -0.4633 -0.3084 -0.1714 -0.1334  0.1127  0.8937  0.8780  1.5465  2.3922  0.2096  0.0807  5.0127  0.0389 -0.0369 
+ac -0.14646 -0.09958 -0.38230 -0.40421 -0.47983 -0.49944 -0.38011 -0.14034  0.00233 -0.01070 -0.36018 -0.15374  0.07854  0.00514  0.13259  0.06378 -0.11811  0.13744 -0.09782 
+Phase 2 Subphase 3 Iteration 400 Progress: 34%
+theta 11.0221  8.9548 -2.8078  2.1762  0.6790 -0.4460 -0.3060 -0.1597 -0.1479  0.1479  0.8929  0.9088  1.5276  2.3380  0.1828  0.0662  5.2400  0.0430  0.0366 
+ac -0.0304 -0.0813 -0.2376 -0.3042 -0.3848 -0.3642 -0.2666 -0.1212 -0.0303 -0.0999 -0.2514 -0.1245  0.0130 -0.0596  0.0828 -0.0285 -0.1380  0.0128 -0.0442 
+Phase 2 Subphase 3 Iteration 600 Progress: 37%
+theta 11.15504  9.05484 -2.79515  2.16416  0.67607 -0.47663 -0.30497 -0.16244 -0.13063  0.12756  0.89405  0.87605  1.59100  2.32423  0.17862  0.07212  5.16733  0.04907 -0.00453 
+ac -0.082182 -0.053039 -0.237947 -0.337589 -0.410545 -0.394832 -0.271115 -0.098567  0.000289 -0.031446 -0.260349 -0.129380  0.021039 -0.012860  0.056445 -0.024175 -0.070975  0.015083  0.010682 
+theta 10.9908  9.0025 -2.8071  2.1770  0.6750 -0.4588 -0.3066 -0.1659 -0.1441  0.1268  0.8956  0.8929  1.5514  2.3293  0.1817  0.0684  5.0930  0.0472 -0.0022 
+ac -0.05850 -0.04707 -0.23596 -0.33182 -0.40625 -0.39079 -0.26882 -0.09782 -0.00595 -0.03973 -0.25517 -0.11032  0.01790 -0.01909  0.05527 -0.02185 -0.06739  0.01699  0.00777 
+theta: 10.9908  9.0025 -2.8071  2.1770  0.6750 -0.4588 -0.3066 -0.1659 -0.1441  0.1268  0.8956  0.8929  1.5514  2.3293  0.1817  0.0684  5.0930  0.0472 -0.0022 
+
+Start phase 2.4
+Phase 2 Subphase 4 Iteration 1 Progress: 37%
+Phase 2 Subphase 4 Iteration 2 Progress: 37%
+Phase 2 Subphase 4 Iteration 3 Progress: 37%
+Phase 2 Subphase 4 Iteration 4 Progress: 37%
+Phase 2 Subphase 4 Iteration 5 Progress: 37%
+Phase 2 Subphase 4 Iteration 6 Progress: 37%
+Phase 2 Subphase 4 Iteration 7 Progress: 37%
+Phase 2 Subphase 4 Iteration 8 Progress: 37%
+Phase 2 Subphase 4 Iteration 9 Progress: 37%
+Phase 2 Subphase 4 Iteration 10 Progress: 37%
+Phase 2 Subphase 4 Iteration 200 Progress: 40%
+theta 10.9568  8.9079 -2.7963  2.1582  0.6724 -0.4395 -0.3035 -0.1629 -0.1498  0.1429  0.8836  0.8543  1.4637  2.3662  0.1904  0.0712  5.1159  0.0461  0.0374 
+ac -0.1130 -0.0127  0.0331 -0.0928 -0.0595 -0.1086  0.0219 -0.0261 -0.0481  0.0682  0.0188  0.0764  0.1524  0.0279  0.1127  0.0693  0.0688 -0.0690  0.1452 
+Phase 2 Subphase 4 Iteration 400 Progress: 43%
+theta 10.9353  9.0185 -2.8045  2.1783  0.6769 -0.4431 -0.3013 -0.1577 -0.1631  0.1434  0.8832  0.8730  1.5285  2.2692  0.1790  0.0547  4.8830  0.0473  0.0114 
+ac -0.08444 -0.07006  0.04698 -0.11505 -0.07829 -0.12696  0.00266 -0.03666  0.03288  0.06864  0.03802  0.06568  0.15007  0.05864  0.06993 -0.04766  0.01985 -0.05722  0.12983 
+Phase 2 Subphase 4 Iteration 600 Progress: 46%
+theta 10.9463  9.0235 -2.8043  2.1763  0.6810 -0.4499 -0.3031 -0.1600 -0.1527  0.1476  0.8810  0.9310  1.5188  2.3413  0.1693  0.0665  5.0192  0.0505  0.0185 
+ac -0.0101 -0.0597 -0.0402 -0.1389 -0.1757 -0.1947 -0.0851 -0.0632  0.0262  0.0952 -0.0534 -0.0244  0.1208  0.0388  0.0432 -0.0249  0.0195 -0.0596  0.0680 
+Phase 2 Subphase 4 Iteration 800 Progress: 49%
+theta 10.9236  9.1932 -2.8045  2.1713  0.6811 -0.4498 -0.3029 -0.1599 -0.1569  0.1406  0.8827  0.8693  1.5053  2.2637  0.1598  0.0701  4.9895  0.0514  0.0223 
+ac -0.01352 -0.02814 -0.04546 -0.11654 -0.17432 -0.17944 -0.08457 -0.05571  0.00130 -0.00175 -0.05083 -0.04192  0.10142 -0.01007  0.01803 -0.02970  0.00201 -0.04526  0.01378 
+Phase 2 Subphase 4 Iteration 1000 Progress: 52%
+theta 10.9707  8.9513 -2.8097  2.1574  0.6714 -0.4411 -0.3037 -0.1610 -0.1529  0.1430  0.9003  0.8629  1.5961  2.3674  0.1787  0.0645  4.8031  0.0431  0.0119 
+ac -0.02370  0.00792 -0.05550 -0.12850 -0.17237 -0.17831 -0.08347 -0.03605 -0.02159 -0.02788 -0.05889 -0.05180  0.07315 -0.02709  0.03873 -0.01106 -0.02786  0.00701  0.02316 
+Phase 2 Subphase 4 Iteration 1200 Progress: 55%
+theta 10.9438  9.1035 -2.8122  2.1782  0.6620 -0.4505 -0.3023 -0.1709 -0.1413  0.1362  0.8952  0.8994  1.5603  2.3511  0.1897  0.0685  4.8949  0.0414  0.0264 
+ac -0.027105  0.036134 -0.061976 -0.145480 -0.175483 -0.184629 -0.086302 -0.036314 -0.009410 -0.005855 -0.061404 -0.048539  0.075046  0.004884  0.022758  0.003948  0.002985 -0.000241  0.019303 
+theta 10.93521  8.99795 -2.80404  2.16637  0.67217 -0.44995 -0.30269 -0.16170 -0.15426  0.14116  0.88857  0.89232  1.52926  2.32873  0.18278  0.06438  4.98564  0.04659  0.00435 
+ac -0.023911  0.041058 -0.054491 -0.151119 -0.175978 -0.183854 -0.078504 -0.042983 -0.003771 -0.010630 -0.055746 -0.046448  0.068714  0.011661  0.014666  0.002423  0.005923  0.000717  0.031313 
+theta: 10.93521  8.99795 -2.80404  2.16637  0.67217 -0.44995 -0.30269 -0.16170 -0.15426  0.14116  0.88857  0.89232  1.52926  2.32873  0.18278  0.06438  4.98564  0.04659  0.00435 
+
+Start phase 3 
+Phase 3 Iteration 100 Progress 57%
+Phase 3 Iteration 200 Progress 59%
+Phase 3 Iteration 300 Progress 60%
+Phase 3 Iteration 400 Progress 61%
+Phase 3 Iteration 500 Progress 63%
+Phase 3 Iteration 600 Progress 64%
+Phase 3 Iteration 700 Progress 66%
+Phase 3 Iteration 800 Progress 67%
+Phase 3 Iteration 900 Progress 69%
+Phase 3 Iteration 1000 Progress 70%
+Phase 3 Iteration 1100 Progress 72%
+Phase 3 Iteration 1200 Progress 73%
+Phase 3 Iteration 1300 Progress 75%
+Phase 3 Iteration 1400 Progress 76%
+Phase 3 Iteration 1500 Progress 78%
+Phase 3 Iteration 1600 Progress 79%
+Phase 3 Iteration 1700 Progress 81%
+Phase 3 Iteration 1800 Progress 82%
+Phase 3 Iteration 1900 Progress 84%
+Phase 3 Iteration 2000 Progress 85%
+Phase 3 Iteration 2100 Progress 87%
+Phase 3 Iteration 2200 Progress 88%
+Phase 3 Iteration 2300 Progress 90%
+Phase 3 Iteration 2400 Progress 91%
+Phase 3 Iteration 2500 Progress 93%
+Phase 3 Iteration 2600 Progress 94%
+Phase 3 Iteration 2700 Progress 96%
+Phase 3 Iteration 2800 Progress 97%
+Phase 3 Iteration 2900 Progress 99%
+Phase 3 Iteration 3000 Progress 100%
+Model 2 tconv.max: 0.1780151  max|t|: 0.05505681 
+> 
+> cat("\n=== Model 2 GoF ===\n")
+
+=== Model 2 GoF ===
+> gof2_indeg  <- sienaGOF(model2, IndegreeDistribution,  varName = "friendship2", cumulative = FALSE)
+> gof2_outdeg <- sienaGOF(model2, OutdegreeDistribution, varName = "friendship2", cumulative = FALSE)
+> gof2_geo    <- sienaGOF(model2, GeodesicDistribution,  varName = "friendship2", cumulative = FALSE)
+> gof2_beh    <- sienaGOF(model2, BehaviorDistribution,  varName = "drinkingbeh")
+> 
+> save(gof2_indeg, gof2_outdeg, gof2_geo, gof2_beh, file = "gof2.RData")
+> 
+> save(jac, model1, model2,
++      gof1_indeg, gof1_outdeg, gof1_geo, gof1_tri,
++      gof2_indeg, gof2_outdeg, gof2_geo, gof2_beh,
++      file = "saom_results.RData")
+> 
+> cat("\n=== ALL DONE ===\n")
+
+=== ALL DONE ===
+> 
+> cat("\n--- Model 1 estimates ---\n")
+
+--- Model 1 estimates ---
+> print(data.frame(
++   Effect = model1$effects$effectName,
++   Estimate = round(model1$theta, 4),
++   SE = round(sqrt(diag(model1$covtheta)), 4),
++   t_value = round(model1$theta / sqrt(diag(model1$covtheta)), 3)
++ ))
+                         Effect Estimate     SE t_value
+1           outdegree (density)  -2.7936 0.1774 -15.750
+2                   reciprocity   2.2083 0.1025  21.547
+3           transitive triplets   0.6805 0.0438  15.544
+4                      3-cycles  -0.4594 0.0864  -5.320
+5  indegree - popularity (sqrt)  -0.2995 0.0802  -3.735
+6                    logdistCov  -0.1525 0.0458  -3.326
+7               genderCov alter  -0.1579 0.0978  -1.614
+8                 genderCov ego   0.1324 0.1024   1.293
+9                same genderCov   0.8885 0.0944   9.416
+10        alcoholCov similarity   0.3869 0.1407   2.749
+> 
+> cat("\n--- Model 2 estimates ---\n")
+
+--- Model 2 estimates ---
+> print(data.frame(
++   Effect = model2$effects$effectName,
++   Estimate = round(model2$theta, 4),
++   SE = round(sqrt(diag(model2$covtheta)), 4),
++   t_value = round(model2$theta / sqrt(diag(model2$covtheta)), 3)
++ ))
+                                 Effect Estimate     SE t_value
+1  constant friendship2 rate (period 1)  10.9352 1.0565  10.351
+2  constant friendship2 rate (period 2)   8.9980 0.8542  10.534
+3                   outdegree (density)  -2.8040 0.1873 -14.971
+4                           reciprocity   2.1664 0.1085  19.964
+5                   transitive triplets   0.6722 0.0450  14.922
+6                              3-cycles  -0.4499 0.0895  -5.027
+7          indegree - popularity (sqrt)  -0.3027 0.0837  -3.617
+8                           logdistCov2  -0.1617 0.0460  -3.515
+9                      genderCov2 alter  -0.1543 0.1042  -1.480
+10                       genderCov2 ego   0.1412 0.1007   1.402
+11                      same genderCov2   0.8886 0.0967   9.192
+12               drinkingbeh similarity   0.8923 0.2716   3.285
+13          rate drinkingbeh (period 1)   1.5293 0.2447   6.251
+14          rate drinkingbeh (period 2)   2.3287 0.4014   5.801
+15             drinkingbeh linear shape   0.1828 0.2441   0.749
+16          drinkingbeh quadratic shape   0.0644 0.0707   0.911
+17       drinkingbeh average similarity   4.9856 1.5566   3.203
+18                 drinkingbeh indegree   0.0466 0.0639   0.729
+19  drinkingbeh: effect from genderCov2   0.0044 0.1779   0.024
+> 
