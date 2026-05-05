@@ -81,16 +81,12 @@ makeplot(c(0, 0.1, 0.2, 0.3, 0.5, log(2), 1, 2, 3))
 
 ### iii.
 
-The first observation is that $\alpha<0$ usually doesn't make sense because it distinguishes between odd and even outdegree very strongly.
+We can observe from the figures that the decay parameter $\alpha$ controls how quickly the marginal contribution of an additional out-edge decays with higher out-degree. As shown above, the marginal contribution simplifies to $(1-e^{-\alpha})^k$. For non-negative $\alpha$ the base of this exponential in $k$ lies between 0 and 1, so we get a nice exponential decay. The larger $\alpha$, the closer the base gets to 1 and thus the slower the exponential decay gets. So adding another out-edge to an already high degree vertex still contributes significantly. For $\alpha$ close to 0, the base also gets close to 0, and thus the exponential decay is way faster. So adding another out-edge only contributes significantly if the vertex was low degree before.
 
-Next, if $\alpha$ is close to zero, then only the first edge contributes significantly to the `gwodegree` statistic. 
-
-[TODO]
+For negative $\alpha$, the base of the exponential is negative too. So the marginal contribution will alternate in sign depending on parity of $k$. So a negative decay parameter $\alpha$ is difficult to interpret as having a reasonable effect, unless the model aims to treat even degrees differently than odd degrees.
 
 ### iv.
 
-Large. [TODO]
+As explained in **iii**, choosing $\alpha$ close to 0 would not make sense in this scenario, since adding an additional edge to already active (so high-degree) vertices only has a very small effect on the `gwodegree` statistic. Choosing $\alpha$ negative doesn't make sense either since we don't want the statistic to depend on the parity of the degree. So we choose $\alpha$ large. This means that even for high degree vertices, adding another edge increases the `gwodegree` statistic significantly. But note that no matter how large $\alpha$, the effect of adding the 100th edge will never be larger than the effect of adding the 1st edge. If we are hoping for a statistic where adding one edge to a high degree vertex has a larger effect than adding one edge to a low degree vertex, then we should choose an entirely different statistic.
 
-## (2) 
-
-## (3)
+So we should choose $\alpha$ moderately large, such that the decay of the marginal is slow. Like that adding out-edges to high-degree vertices still contributes significantly.
